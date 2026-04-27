@@ -32,15 +32,23 @@ def wydatki_dzienne_skumulowane():
     dzis = teraz.day
     wyswietlane_dni = dni_miesiaca[:dzis]
     wyswietlane_wydatki = wszystkie_skumulowane[:dzis]
+    limit_total = 5600
 
-    # Wykres
+    # Kwoty do wydania rozłożone równomiernie na cały miesiąc
+    x_limit = [0, liczba_dni]
+    y_limit = [0, limit_total]
+    # Wykresy
     plt.bar(wyswietlane_dni, wyswietlane_wydatki, color='skyblue')
+    # Linia limitu
+    plt.plot(x_limit, y_limit, color='red', linestyle='-', linewidth=1, label='Limit budzetowy')
+
     plt.xlim(0, liczba_dni + 1)
+    plt.ylim(0, max(limit_total, max(wszystkie_skumulowane)) * 1.1) # Skalowanie osi Y
     plt.xlabel("Dzień miesiąca")
-    plt.ylabel("Wydatki skumulowane {PLN)}")
+    plt.ylabel('Wydatki skumulowane (PLN)')
     plt.title(f'Suma wydatków do dnia: {dzis} {calendar.month_name[miesiac]}')
 
-    plt.plot(ypoints, linestyle = 'dotted')
+    
     plt.show()
 
 wydatki_dzienne_skumulowane()
