@@ -8,4 +8,5 @@ def wydatki_kategorie():
     plt.title('Wydatki w tym miesiącu wg kategorii')
     plt.show()
 
-wydatki_kategorie()
+if __name__ == "__main__":
+    wydatki_kategorie()

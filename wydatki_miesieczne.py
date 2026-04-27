@@ -51,7 +51,9 @@ def wydatki_dzienne_skumulowane():
     
     plt.show()
 
-wydatki_dzienne_skumulowane()
+# To, co masz na końcu pliku, schowaj pod tym warunkiem:
+if __name__ == "__main__":
+    wydatki_dzienne_skumulowane()
  
 
 
