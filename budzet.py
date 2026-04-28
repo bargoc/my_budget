@@ -1,6 +1,10 @@
 import FreeSimpleGUI as sg
 import wydatki_miesieczne as wm
 import wydatki_wg_kategorii as kw
+import db_manager as db
+
+# Przy starcie programu tworzymy tabele, jeśli nie istnieją
+db.inicjalizuj_baze()
 
 sg.theme('SystemDefaultForReal') # Lub np. 'LightBlue'
 # Definiujemy listę kategorii (to co ma być w środku listy rozwijanej)
