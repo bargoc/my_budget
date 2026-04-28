@@ -9,16 +9,17 @@ lista_kategorii = ['Zywność', 'Dom', 'Auto', 'Uzywki', "Odziez", "Praca", "Pod
 layout = [
     [sg.Text("Budżet Domowy", font=("Arial", 20))], 
     [sg.Text("Wybierz kategorię:")], 
-    [sg.Combo(lista_kategorii, key='-KAT-', readonly=True, default_value='Zywność')], 
-    [sg.Text("Kwota:"), sg.Input(key='-KWOTA-', size=(10, 1))],
+    [sg.Combo(lista_kategorii, key='-KAT-', readonly=True, default_value='Zywność', size=(21, 1))], 
+    [sg.Text("Kwota:")],
+    [sg.Input(key='-KWOTA-', size=(23, 1))],
     
     # NOWY PRZYCISK: Akceptacja pojedynczego zakupu
-    [sg.Button("Dodaj zakup", bind_return_key=True, button_color=('white', 'green'))],
+    [sg.Button("Dodaj zakup", bind_return_key=True, button_color=('white', 'green'), size=(22, 1))],
     
     [sg.HorizontalSeparator()], # Estetyczna linia oddzielająca
-    [sg.Button("Pokaż wykres skumulowany")],
-    [sg.Button("Pokaż kategorie")],
-    [sg.Button("Wyjście")]
+    [sg.Button("Pokaż wykres skumulowany", size=(22, 1))],
+    [sg.Button("Pokaż kategorie", size=(22, 1))],
+    [sg.Button("Wyjście", size=(22, 1))]
 ]
 
 window = sg.Window("Centuś", layout)
@@ -31,5 +32,12 @@ while True:
         # Wywołujesz funkcję, którą przed chwilą dopracowałaś
         wm.wydatki_dzienne_skumulowane()
 
+
+print([m for m in dir(sg.Combo) if not m.startswith('_')])
 window.close()
+
+
+
+
+
 
