@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import calendar
 from datetime import datetime
 import itertools
+import db_manager as db
 
 teraz = datetime.now()
 
@@ -20,10 +21,16 @@ def wydatki_dzienne_skumulowane():
 
     # 1. Przykładowe surowe dane (wydatki z konkretnych dni)
     surowe_wydatki = [0] * liczba_dni
-    surowe_wydatki[0] = 50   # 1 kwietnia
+    dane_z_bazy = db.pobierz_wydatki_miesieczne(rok, miesiac)
+
+    for dzien_str, suma in dane_z_bazy:
+        indeks = int(dzien_str) - 1
+        surowe_wydatki[indeks] = suma
+
+    """ surowe_wydatki[0] = 50   # 1 kwietnia
     surowe_wydatki[1] = 100  # 2 kwietnia
     surowe_wydatki[2] = 80   # 3 kwietnia
-    surowe_wydatki[26] = 450 # 27 kwietnia (dzisiaj)
+    surowe_wydatki[26] = 450 # 27 kwietnia (dzisiaj) """
 
     # Lista skumulowana
     wszystkie_skumulowane = list(itertools.accumulate(surowe_wydatki))
@@ -54,6 +61,3 @@ def wydatki_dzienne_skumulowane():
 # To, co masz na końcu pliku, schowaj pod tym warunkiem:
 if __name__ == "__main__":
     wydatki_dzienne_skumulowane()
- 
-
-
