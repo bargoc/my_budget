@@ -58,13 +58,18 @@ while True:
 
     if event == " + ":
         nowa = values['-NOWA_KAT-'].strip()
+        # db.dodaj_poczatkowe_kategorie_db({nowa}, 1)
         if nowa:
-            conn = sqlite3.connect('centus_db')
+            conn = sqlite3.connect('centus.db')
             kursor = conn.cursor()
             try:
-                # Combo pobiera kategorie z bazy
+                # 1. NAJPIERW DODAJEMY DO BAZY (tego brakowało!)
+                kursor.execute("INSERT INTO kategorie (nazwa, aktywna) VALUES (?, 1)", (nowa,))
+                conn.commit()
+                # 2. POTEM ODŚWIEŻAMY COMBO (pobieramy nową listę z bazy)
                 nowa_lista = db.pobierz_kategorie_db()
                 window['-KAT-'].update(values=nowa_lista, value=nowa)
+                # 3. CZYŚCIMY POLE WPISYWANIA
                 window['-NOWA_KAT-'].update('')
                 sg.popup_quick_message(f"Dodano kategorię: {nowa}")
             except sqlite3.IntegrityError:
