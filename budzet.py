@@ -14,21 +14,22 @@ lista_kategorii = db.pobierz_kategorie_db()
 
 
 layout = [
-    [sg.Text("Budżet Domowy", font=("Arial", 20))], 
+    [sg.Text("Budżet Domowy", font=("Arial", 18)), sg.Push(), sg.Button("⚙", key="Ustawienia", font=("Arial", 18), size=(2, 1))], 
     [sg.Text("Wybierz kategorię:")], 
     [sg.Combo(lista_kategorii, key='-KAT-', readonly=True, default_value=lista_kategorii[0], size=(21, 1))], 
-    [sg.Text("Dodaj nową kategorię:")],
-    [sg.Input(key='-NOWA_KAT-', size=(23, 1)), sg.Button(" + ")],
+    # [sg.Text("Dodaj nową kategorię:")],
+    # [sg.Input(key='-NOWA_KAT-', size=(23, 1)), sg.Button(" + ")],
     [sg.Text("Kwota:")],
     [sg.Input(key='-KWOTA-', size=(23, 1))],
     
     # NOWY PRZYCISK: Akceptacja pojedynczego zakupu
     [sg.Button("Dodaj zakup", bind_return_key=True, button_color=('white', 'green'), size=(22, 1))],
     
-    [sg.HorizontalSeparator()], # Estetyczna linia oddzielająca
+    [sg.HorizontalSeparator(), sg.Text('         ')], # Estetyczna linia oddzielająca
     [sg.Button("Pokaż wykres skumulowany", size=(22, 1))],
     [sg.Button("Pokaż kategorie", size=(22, 1))],
-    [sg.Button("Wyjście", size=(22, 1))]
+    # [sg.Button("Wyjście", size=(22, 1)), sg.Button("Ustawienia", size=(4, 1))], # NOWY PRZYCISKsg.Button("Wyjście", size=(22, 1))]
+    [sg.Button("Wyjście", size=(22, 1)), sg.Push()]
 ]
 
 window = sg.Window("Centuś", layout)
@@ -55,6 +56,17 @@ while True:
 
         except ValueError:
             sg.popup_error("Wpisz poprawną liczbę")
+
+    if event == "Ustawienia":
+        # Tworzymy układ nowego okna
+        layout_settings = [
+            [sg.Text("Zarządzanie kategoriami")],
+            [sg.Input(key='-NEW-', size=(20, 1)), sg.Button("Dodaj")],
+            [sg.Listbox(values=db.pobierz_kategorie_db(), size=(20, 5), key='-LISTA-')],
+            [sg.Button("Ukryj wybraną"), sg.Button("Zamknij")]
+        ]
+        win_sett = sg.Window("Ustawienia", layout_settings, modal=True)
+
 
     if event == " + ":
         nowa = values['-NOWA_KAT-'].strip()
