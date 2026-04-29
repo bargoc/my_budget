@@ -75,6 +75,28 @@ def pobierz_wydatki_miesieczne(rok, miesiac):
     conn.close()
     return wyniki # Zwraca listę krotek np. [('01', 50.0), ('27', 450.0)]
 
+def pobierz_sumy_kategorii(rok, miesiac):
+    import sqlite3
+    conn = sqlite3.connect('centus.db')
+    c = conn.cursor()
+
+    # Wyciągamy nazwę kategorii i sumę kwot dla danego miesiąca
+    query = """
+        SELECT kategoria, SUM(kwota) 
+        FROM wydatki 
+        WHERE strftime('%Y', data) = ? AND strftime('%m', data) = ?
+        GROUP BY kategoria
+        ORDER BY SUM(kwota) DESC
+    """
+
+    m_str = str(miesiac).zfill(2)
+    c.execute(query, (str(rok), m_str))
+    wyniki = c.fetchall()
+    conn.close()
+    # Zwraca np. [('Auto', 3613.0), ('Dom', 44.0)]
+    return wyniki 
+
+
 if __name__ == "__main__":
     inicjalizuj_baze()
     print("Baza danych jest gotowa do ataku.")
