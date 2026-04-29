@@ -11,7 +11,13 @@ def wydatki_kategorie():
     dane = db.pobierz_sumy_kategorii(rok, miesiac)
 
     if not dane:
-        plt.text(0.5, 0.5, 'Brak danych w tym miesiącu, suma -> values')
+        # plt.text(0.5, 0.5, 'Brak danych w tym miesiącu, suma -> values')
+        plt.text(0.5, 0.5, 'Brak danych w tym miesiącu', 
+                 horizontalalignment='center', 
+                 verticalalignment='center', 
+                 fontsize=10, 
+                 color='gray',
+                 transform=plt.gca().transAxes)
         plt.show()
         return
     

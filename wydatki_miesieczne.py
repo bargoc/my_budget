@@ -39,7 +39,7 @@ def wydatki_dzienne_skumulowane():
     dzis = teraz.day
     wyswietlane_dni = dni_miesiaca[:dzis]
     wyswietlane_wydatki = wszystkie_skumulowane[:dzis]
-    limit_total = 5600
+    limit_total = db.pobierz_aktualny_limit()
 
     # Kwoty do wydania rozłożone równomiernie na cały miesiąc
     x_limit = [0, liczba_dni]

@@ -13,19 +13,26 @@ def inicjalizuj_baze():
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   nazwa TEXT UNIQUE,
                   aktywna INTEGER DEFAULT 1)'''
+    limit_mie_sql = '''CREATE TABLE IF NOT EXISTS limit_wydatkow
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  rok INTEGER,
+                  miesiac INTEGER,
+                  limit_kwota REAL)'''
 
     # Tabela wydatków
     kursor.execute(wydatki_sql)
     
     # Tabela kategorii (na przyszłość)
     kursor.execute(kategorie_sql)
+
+    kursor.execute(limit_mie_sql)
     
     conn.commit()
     conn.close()
 
 
 def dodaj_poczatkowe_kategorie_db():
-    poczatkowe = ['Żywność', 'Dom', 'Auto', 'Odzież', 'Materiały do pracy', 'Podróże', 'Inne']
+    poczatkowe = ['Żywność', 'Dom', 'Auto']
     conn = sqlite3.connect('centus.db')
     kursor = conn.cursor()
     # INSERT OR IGNORE sprawi, że nie zdublujemy wpisów przy każdym starcie
@@ -96,6 +103,29 @@ def pobierz_sumy_kategorii(rok, miesiac):
     # Zwraca np. [('Auto', 3613.0), ('Dom', 44.0)]
     return wyniki 
 
+def ustaw_poczatkowy_limit():
+    conn = sqlite3.connect('centus.db')
+    c = conn.cursor()
+    # Sprawdzamy czy tabela jest pusta
+    c.execute("SELECT COUNT(*) FROM limit_wydatkow")
+    if c.fetchone()[0] == 0:
+        # Dodajemy domyślny limit na start
+        c.execute("INSERT INTO limit_wydatkow (rok, miesiac, limit_kwota) VALUES (?, ?, ?)", 
+                  (2026, 4, 3500.0))
+        conn.commit()
+    conn.close()
+
+def pobierz_aktualny_limit():
+    conn = sqlite3.connect('centus.db')
+    c = conn.cursor()
+    # Szukamy najnowszego limitu (wg daty)
+    c.execute("SELECT limit_kwota FROM limit_wydatkow ORDER BY rok DESC, miesiac DESC LIMIT 1")
+    wynik = c.fetchone()
+    conn.close()
+    
+    if wynik:
+        return wynik[0]
+    return 3500.0  # Wartość awaryjna, jeśli tabela byłaby pusta
 
 if __name__ == "__main__":
     inicjalizuj_baze()
