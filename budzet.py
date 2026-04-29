@@ -63,10 +63,90 @@ while True:
             [sg.Text("Zarządzanie kategoriami")],
             [sg.Input(key='-NEW-', size=(20, 1)), sg.Button("Dodaj")],
             [sg.Listbox(values=db.pobierz_kategorie_db(), size=(20, 5), key='-LISTA-')],
-            [sg.Button("Ukryj wybraną"), sg.Button("Zamknij")]
+            [sg.Button("Ukryj wybraną"), sg.Button("Usuń z bazy"), sg.Button("Zamknij")]
         ]
         win_sett = sg.Window("Ustawienia", layout_settings, modal=True)
 
+        while True:
+            e_set, v_set = win_sett.read()
+            if e_set in (sg.WIN_CLOSED, "Zamknij"):
+                break
+            
+            if e_set == "Dodaj":
+                n_kat = v_set['-NEW-'].strip()
+                if n_kat:
+                    conn = sqlite3.connect('centus.db') # POPRAWIONA NAZWA
+                    c = conn.cursor()
+
+                    # 1. Sprawdzamy, czy taka kategoria już w ogóle istnieje (nawet ukryta)
+                    c.execute("SELECT aktywna FROM kategorie WHERE nazwa = ?", (n_kat,))
+                    istnieje = c.fetchone()
+
+                    # Jeśli jest ukryta, to ją aktywujemy
+                    # c.execute("SELECT aktywna FROM kategorie WHERE nazwa = ?", (n_kat,))
+                    # istnieje = c.fetchone()
+
+                    if istnieje:
+                        if istnieje[0] == 0:
+                            # Jeśli jest ukryta, to ją aktywujemy
+                            c.execute("UPDATE kategorie SET aktywna = 1 WHERE nazwa = ?", (n_kat,))
+                            sg.popup_quick_message(f"Przywrócono kategorię: {n_kat}")
+                        else:
+                            sg.popup_error("Ta kategoria jest już aktywna!")
+                    else:
+                        # 2. Jeśli nie istnieje, dodajemy nową
+                        c.execute("INSERT INTO kategorie (nazwa, aktywna) VALUES (?, 1)", (n_kat,))
+                        sg.popup_quick_message(f"Dodano nową kategorię: {n_kat}")
+
+                    conn.commit()
+                    conn.close()
+
+                    # Odświeżamy widoki w obu oknach
+                    nowa_lista = db.pobierz_kategorie_db()
+                    win_sett['-LISTA-'].update(nowa_lista)
+                    window['-KAT-'].update(values=nowa_lista)
+                    win_sett['-NEW-'].update('')
+                           
+                    try:
+                        c.execute("INSERT INTO kategorie (nazwa) VALUES (?)", (n_kat,))
+                        conn.commit()
+                        # Aktualizacja listy w oknie ustawień
+                        win_sett['-LISTA-'].update(db.pobierz_kategorie_db())
+                        # Aktualizacja Combo w głównym oknie
+                        window['-KAT-'].update(values=db.pobierz_kategorie_db())
+                        win_sett['-NEW-'].update('')
+                    except sqlite3.IntegrityError:
+                        sg.popup_error("Już jest taka kategoria!")
+                    finally:
+                        conn.close() 
+
+            if e_set == "Ukryj wybraną":
+                wybrana = v_set['-LISTA-']
+                if wybrana:
+                    conn = sqlite3.connect('centus.db')
+                    c = conn.cursor()
+                    c.execute("UPDATE kategorie SET aktywna = 0 WHERE nazwa = ?", (wybrana[0],))
+                    conn.commit()
+                    conn.close()
+                    nowa_lista = db.pobierz_kategorie_db()
+                    win_sett['-LISTA-'].update(nowa_lista)
+                    window['-KAT-'].update(values=nowa_lista)
+
+            if e_set == "Usuń z bazy":
+                wybrana = v_set['-LISTA-']
+                if wybrana:
+                    odp = sg.popup_yes_no(f"Czy na pewno usunąć '{wybrana[0]}'? Stracisz historię wydatków tej kategorii!")
+                    if odp == "Yes":
+                        conn = sqlite3.connect('centus.db')
+                        c = conn.cursor()
+                        c.execute("DELETE FROM kategorie WHERE nazwa = ?", (wybrana[0],))
+                        conn.commit()
+                        conn.close()
+                        nowa_lista = db.pobierz_kategorie_db()
+                        win_sett['-LISTA-'].update(nowa_lista)
+                        window['-KAT-'].update(values=nowa_lista)
+
+        win_sett.close() 
 
     if event == " + ":
         nowa = values['-NOWA_KAT-'].strip()
