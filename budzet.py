@@ -11,6 +11,7 @@ sg.theme('SystemDefaultForReal') # Lub np. 'LightBlue'
 # Definiujemy listę kategorii (to co ma być w środku listy rozwijanej)
 db.dodaj_poczatkowe_kategorie_db()
 lista_kategorii = db.pobierz_kategorie_db()
+# dotychczasowy_limit = db.pobierz_aktualny_limit()
 
 
 layout = [
@@ -22,7 +23,9 @@ layout = [
     [sg.Text("Kwota:")],
     [sg.Input(key='-KWOTA-', size=(23, 1))],
     
-    # NOWY PRZYCISK: Akceptacja pojedynczego zakupu
+    # Akceptacja pojedynczego zakupu
+    # bind_return_key=True: To "ficzer", który pozwala na zatwierdzenie zakupu po prostu naciskając Enter na klawiaturze,
+    # bez odrywania rąk od pisania kwot.
     [sg.Button("Dodaj zakup", bind_return_key=True, button_color=('white', 'green'), size=(22, 1))],
     
     [sg.HorizontalSeparator(), sg.Text('         ')], # Estetyczna linia oddzielająca
@@ -45,6 +48,7 @@ while True:
 
     if event == "Dodaj zakup":
         kat = values['-KAT-']
+        # Zamiana przecinka na kropkę
         kwota_str = values['-KWOTA-'].replace(',', '.')
         try:
             kwota = float(kwota_str)
@@ -59,11 +63,16 @@ while True:
 
     if event == "Ustawienia":
         # Tworzymy układ nowego okna
+        # dotychczasowy_limit = db.pobierz_aktualny_limit()
         layout_settings = [
             [sg.Text("Zarządzanie kategoriami")],
             [sg.Input(key='-NEW-', size=(20, 1)), sg.Button("Dodaj")],
             [sg.Listbox(values=db.pobierz_kategorie_db(), size=(20, 5), key='-LISTA-')],
-            [sg.Button("Ukryj wybraną"), sg.Button("Usuń z bazy"), sg.Button("Zamknij")]
+            [sg.Button("Ukryj kategorię"), sg.Button("Usuń z bazy")], 
+            # [sg.Text(f"Zmiana limitu {dotychczasowy_limit}", keys='-LIMIT_TEXT_')],
+            [sg.Text(f"Zmiana limitu")],
+            [sg.Input(key='-CURRENTLIMIT-', size=(20,1)), sg.Button("Zmień")],
+            [sg.Button("Zamknij")]
         ]
         win_sett = sg.Window("Ustawienia", layout_settings, modal=True)
 
@@ -71,7 +80,21 @@ while True:
             e_set, v_set = win_sett.read()
             if e_set in (sg.WIN_CLOSED, "Zamknij"):
                 break
-            
+            # Zmiana limitu 
+            if e_set == 'Zmień':
+                nowy_limit_str = v_set['-CURRENTLIMIT-'].replace(',', '.')
+                try:
+                    nowa_kwota = float(nowy_limit_str)
+                    # Tutaj wywołujesz funkcję, która doda nowy wiersz do tabeli
+                    # z datą '2026-05-01' (albo bieżącą datą)
+                    db.zaktualizuj_limit(nowa_kwota) 
+                    
+                    sg.popup_quick_message("Limit zaktualizowany!")
+                    # Odświeżamy napis w GUI
+                    win_sett['-CURRENTLIMIT-'].update(f"Aktualny limit: {nowa_kwota}")
+                except ValueError:
+                    sg.popup_error("Wpisz poprawną liczbę!")
+                
             if e_set == "Dodaj":
                 n_kat = v_set['-NEW-'].strip()
                 if n_kat:
@@ -79,12 +102,9 @@ while True:
                     c = conn.cursor()
 
                     # 1. Sprawdzamy, czy taka kategoria już w ogóle istnieje (nawet ukryta)
+                    # Jeśli jest ukryta, to ją aktywujemy
                     c.execute("SELECT aktywna FROM kategorie WHERE nazwa = ?", (n_kat,))
                     istnieje = c.fetchone()
-
-                    # Jeśli jest ukryta, to ją aktywujemy
-                    # c.execute("SELECT aktywna FROM kategorie WHERE nazwa = ?", (n_kat,))
-                    # istnieje = c.fetchone()
 
                     if istnieje:
                         if istnieje[0] == 0:
@@ -106,19 +126,6 @@ while True:
                     win_sett['-LISTA-'].update(nowa_lista)
                     window['-KAT-'].update(values=nowa_lista)
                     win_sett['-NEW-'].update('')
-                           
-                    try:
-                        c.execute("INSERT INTO kategorie (nazwa) VALUES (?)", (n_kat,))
-                        conn.commit()
-                        # Aktualizacja listy w oknie ustawień
-                        win_sett['-LISTA-'].update(db.pobierz_kategorie_db())
-                        # Aktualizacja Combo w głównym oknie
-                        window['-KAT-'].update(values=db.pobierz_kategorie_db())
-                        win_sett['-NEW-'].update('')
-                    except sqlite3.IntegrityError:
-                        sg.popup_error("Już jest taka kategoria!")
-                    finally:
-                        conn.close() 
 
             if e_set == "Ukryj wybraną":
                 wybrana = v_set['-LISTA-']
@@ -147,28 +154,7 @@ while True:
                         window['-KAT-'].update(values=nowa_lista)
 
         win_sett.close() 
-
-    if event == " + ":
-        nowa = values['-NOWA_KAT-'].strip()
-        # db.dodaj_poczatkowe_kategorie_db({nowa}, 1)
-        if nowa:
-            conn = sqlite3.connect('centus.db')
-            kursor = conn.cursor()
-            try:
-                # 1. NAJPIERW DODAJEMY DO BAZY (tego brakowało!)
-                kursor.execute("INSERT INTO kategorie (nazwa, aktywna) VALUES (?, 1)", (nowa,))
-                conn.commit()
-                # 2. POTEM ODŚWIEŻAMY COMBO (pobieramy nową listę z bazy)
-                nowa_lista = db.pobierz_kategorie_db()
-                window['-KAT-'].update(values=nowa_lista, value=nowa)
-                # 3. CZYŚCIMY POLE WPISYWANIA
-                window['-NOWA_KAT-'].update('')
-                sg.popup_quick_message(f"Dodano kategorię: {nowa}")
-            except sqlite3.IntegrityError:
-                sg.popup_error("Taka kategoria już istnieje!")
-            finally:
-                conn.close()
-
+    
     if event == "Pokaż wykres skumulowany":
         wm.wydatki_dzienne_skumulowane()
 

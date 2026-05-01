@@ -23,8 +23,8 @@ def wydatki_kategorie():
     
     # Rozpakowujemy dane: kategoria -> categories, suma -> values
     categories, values = zip(*dane)
-
-    plt.figure(figsize=(6, 6))
+    # Możesz ustawić rozmiar wykresu w matplotlib, żeby był szerszy: np. Szerokość 7 cali, wysokość 6
+    plt.figure(figsize=(7, 6))
     bars = plt.bar(categories, values, color='skyblue')
     
     # Dodajemy etykiety z kwotami nad słupkami

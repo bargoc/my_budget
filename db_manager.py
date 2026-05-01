@@ -123,9 +123,23 @@ def pobierz_aktualny_limit():
     wynik = c.fetchone()
     conn.close()
     
-    if wynik:
-        return wynik[0]
-    return 3500.0  # Wartość awaryjna, jeśli tabela byłaby pusta
+    if wynik is None:
+        return 3500
+    return wynik[0]  # Wartość awaryjna, jeśli tabela byłaby pusta
+
+def zaktualizuj_limit(nowa_kwota):
+    from datetime import datetime
+    now = datetime.now()
+    rok = now.year
+    miesiac = now.month
+    
+    conn = sqlite3.connect('centus.db')
+    c = conn.cursor()
+    # Aktualizujemy limit
+    c.execute("INSERT INTO limit_wydatkow (rok, miesiac, limit_kwota) VALUES (?, ?, ?)", (rok, miesiac, nowa_kwota))
+    # Po insert niezbędny jest commit
+    conn.commit()
+    conn.close()
 
 if __name__ == "__main__":
     inicjalizuj_baze()

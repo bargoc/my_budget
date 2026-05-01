@@ -10,7 +10,9 @@ teraz = datetime.now()
 teraz = datetime.now()
 rok = teraz.year
 miesiac = teraz.month
+# monthrange zwraca parę: (dzień tygodnia, liczba dni)
 liczba_dni = calendar.monthrange(rok, miesiac)[1]
+print(liczba_dni)
 
 
 # Lista dni od 1 do końca miesiąca
@@ -21,6 +23,8 @@ def wydatki_dzienne_skumulowane():
 
     # 1. Przykładowe surowe dane (wydatki z konkretnych dni)
     surowe_wydatki = [0] * liczba_dni
+    print(surowe_wydatki)
+    # [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     dane_z_bazy = db.pobierz_wydatki_miesieczne(rok, miesiac)
 
     for dzien_str, suma in dane_z_bazy:
@@ -28,15 +32,14 @@ def wydatki_dzienne_skumulowane():
         surowe_wydatki[indeks] = suma
 
     """ surowe_wydatki[0] = 50   # 1 kwietnia
-    surowe_wydatki[1] = 100  # 2 kwietnia
-    surowe_wydatki[2] = 80   # 3 kwietnia
     surowe_wydatki[26] = 450 # 27 kwietnia (dzisiaj) """
 
-    # Lista skumulowana
+    # Lista skumulowana. itertools.accumulate – "przeniesie" sumę z poprzedniego dnia na następny.
     wszystkie_skumulowane = list(itertools.accumulate(surowe_wydatki))
 
     # Dni od poczatku miesiąca do dzisiaj
     dzis = teraz.day
+     # Bierzemy tylko dni od początku do dzisiaj
     wyswietlane_dni = dni_miesiaca[:dzis]
     wyswietlane_wydatki = wszystkie_skumulowane[:dzis]
     limit_total = db.pobierz_aktualny_limit()
@@ -53,8 +56,8 @@ def wydatki_dzienne_skumulowane():
     plt.ylim(0, max(limit_total, max(wszystkie_skumulowane)) * 1.1) # Skalowanie osi Y
     plt.xlabel("Dzień miesiąca")
     plt.ylabel('Wydatki skumulowane (PLN)')
-    plt.title(f'Suma wydatków do dnia: {dzis} {calendar.month_name[miesiac]}')
-
+    plt.title(f'Suma wydatków do dnia: {dzis} {calendar.month_name[miesiac]} {rok}')
+    plt.grid(axis='y', linestyle='--', alpha=0.3)
     
     plt.show()
 
