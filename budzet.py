@@ -82,6 +82,7 @@ while True:
                 break
             # Zmiana limitu 
             if e_set == 'Zmień':
+                print("Kliknięto Zmień!")
                 nowy_limit_str = v_set['-CURRENTLIMIT-'].replace(',', '.')
                 try:
                     nowa_kwota = float(nowy_limit_str)

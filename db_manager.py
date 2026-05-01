@@ -120,12 +120,17 @@ def pobierz_aktualny_limit():
     c = conn.cursor()
     # Szukamy najnowszego limitu (wg daty)
     c.execute("SELECT limit_kwota FROM limit_wydatkow ORDER BY rok DESC, miesiac DESC LIMIT 1")
+    
     wynik = c.fetchone()
+    print(f"DEBUG: Pobrano z bazy: {wynik}") # TO CI POKAŻE CZY BAZA COŚ ZWRACA
     conn.close()
     
     if wynik is None:
         return 3500
-    return wynik[0]  # Wartość awaryjna, jeśli tabela byłaby pusta
+    return wynik[0]  # Wartość awaryjna, jeśli tabela byłaby pusta 
+
+    
+    # return [0] if wynik else 3500.0  # Wartość awaryjna, jeśli tabela byłaby pusta
 
 def zaktualizuj_limit(nowa_kwota):
     from datetime import datetime
@@ -137,6 +142,7 @@ def zaktualizuj_limit(nowa_kwota):
     c = conn.cursor()
     # Aktualizujemy limit
     c.execute("INSERT INTO limit_wydatkow (rok, miesiac, limit_kwota) VALUES (?, ?, ?)", (rok, miesiac, nowa_kwota))
+   
     # Po insert niezbędny jest commit
     conn.commit()
     conn.close()

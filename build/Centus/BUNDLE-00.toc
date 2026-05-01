@@ -1,0 +1,3 @@
+([('Centus',
+   '/Users/maczek/pythonproject/my_budget/dist/Centus',
+   'EXECUTABLE')],)
