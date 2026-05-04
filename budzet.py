@@ -127,6 +127,7 @@ while True:
             # [sg.Text(f"Zmiana limitu {dotychczasowy_limit}", keys='-LIMIT_TEXT_')],
             [sg.Text(f"Zmiana limitu")],
             [sg.Input(key='-CURRENTLIMIT-', size=(20,1)), sg.Button("Zmień")],
+            [sg.Text(key='-INFO_LIMIT-')],
             [sg.Button("Zamknij", size=(19, 1))]
         ]
         # modal=True: To ważny argument w sg.Window. Sprawia on, że dopóki nie zamkniesz Ustawień, nie możesz klikać w głównym oknie Centusia.
@@ -216,11 +217,9 @@ while True:
                     win_sett['-LISTAUKRYTYCH-'].update(values=nowe_nieaktywne)
                     if window:
                         window['-KAT-'].update(values=nowe_aktywne)
-
-            """ 
+ 
             # Zmiana limitu 
             if e_set == 'Zmień':
-                print("Kliknięto Zmień!")
                 nowy_limit_str = v_set['-CURRENTLIMIT-'].replace(',', '.')
                 try:
                     nowa_kwota = float(nowy_limit_str)
@@ -230,9 +229,11 @@ while True:
                     
                     sg.popup_quick_message("Limit zaktualizowany!")
                     # Odświeżamy napis w GUI
-                    win_sett['-CURRENTLIMIT-'].update(f"Aktualny limit: {nowa_kwota}")
+                    win_sett['-CURRENTLIMIT-'].update('')
+                    # 2. Opcjonalnie: Jeśli masz tekst informujący o aktualnym limicie, zaktualizuj go:
+                    win_sett['-INFO_LIMIT-'].update(f"Aktualny limit wynosi: {nowa_kwota} zł")
                 except ValueError:
-                    sg.popup_error("Wpisz poprawną liczbę!")    """     
+                    sg.popup_error("Wpisz poprawną liczbę!")        
             
             if event == "Pokaż wykres skumulowany":
                 wm.wydatki_dzienne_skumulowane()
