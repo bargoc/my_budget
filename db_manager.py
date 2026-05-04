@@ -50,6 +50,38 @@ def pobierz_kategorie_db():
     conn.close()
     # Wynik z bazy to lista krotek [('Auto',), ('Dom',)], zamieniamy na prostą listę:
     return [k[0] for k in wyniki]
+    # Ta funkcja przyjmuje 3 argumenty (kategorię, kwotę i użytkownika). 
+    # Daty nie podajemy z zewnątrz, ponieważ funkcja sama ją sobie generuje w środku, 
+    # w tej linijce: data_dzis = datetime.now().strftime("%Y-%m-%d %H:%M:%S") 
+    # Dopiero później, wewnątrz funkcji, kiedy dochodzi do zapytania SQL: 
+    # c.execute("INSERT INTO wydatki (data, kategoria, kwota, uzytkownik) VALUES (?, ?, ?, ?)", (data_dzis, kat, kwota, uzytkownik)) ...
+    # używamy 4 wartości, aby wypełnić 4 znaki zapytania w tabeli.
+
+def ukryj_kategorie_db():
+    conn = sqlite3.connect('centus.db')
+    c = conn.cursor()
+    c.execute("UPDATE kategorie SET aktywna = 0 WHERE nazwa = ?", (nazwa,))
+    # conn.commit()
+    wyniki = c.fetchall()
+    conn.close()
+    return [k[0] for k in wyniki]
+
+def przywroc_kategorie_db(nazwa):
+    conn = sqlite3.connect('centus.db')
+    c = conn.cursor()
+    c.execute("UPDATE kategorie SET aktywna = 1 WHERE nazwa = ?", (nazwa,))
+    conn.commit()
+    conn.close()    
+
+def pobierz_nieaktywne_kategorie_db():
+    conn = sqlite3.connect('centus.db')
+    kursor = conn.cursor()
+    # Pobieramy tylko aktywne kategorie
+    kursor.execute("SELECT nazwa FROM kategorie WHERE aktywna = 0 ORDER BY nazwa ASC")
+    wyniki = kursor.fetchall()
+    conn.close()
+    # Wynik z bazy to lista krotek [('Auto',), ('Dom',)], zamieniamy na prostą listę:
+    return [k[0] for k in wyniki]    
 
 def dodaj_wydatek_db(kat, kwota, uzytkownik="Basia"):
     from datetime import datetime
@@ -57,6 +89,7 @@ def dodaj_wydatek_db(kat, kwota, uzytkownik="Basia"):
     
     conn = sqlite3.connect('centus.db')
     c = conn.cursor()
+    # INSERT OR IGNORE sprawi, że nie zdublujemy wpisów przy każdym starcie
     c.execute("INSERT INTO wydatki (data, kategoria, kwota, uzytkownik) VALUES (?, ?, ?, ?)",
               (data_dzis, kat, kwota, uzytkownik))
     conn.commit()
@@ -75,9 +108,12 @@ def pobierz_wydatki_miesieczne(rok, miesiac):
         WHERE strftime('%Y', data) = ? AND strftime('%m', data) = ?
         GROUP BY dzien
     """
-    # SQLite potrzebuje miesiąca w formacie "04" a nie "4"
+    # SQLite potrzebuje miesiąca w formacie "04" a nie "4". Funkcja zfill() uzupełnia 0 z lewej strony
     m_str = str(miesiac).zfill(2)
     c.execute(query, (str(rok), m_str))
+    # Metoda fetchall() pobiera wszystkie (lub wszystkie pozostałe) wiersze zestawu wyników zapytania i zwraca listę krotek .
+    # Jeśli nie ma więcej dostępnych wierszy, zwraca pustą listę. 
+    # Przed wykonaniem nowych instrukcji przy użyciu tego samego połączenia należy pobrać wszystkie wiersze dla bieżącego zapytania.
     wyniki = c.fetchall()
     conn.close()
     return wyniki # Zwraca listę krotek np. [('01', 50.0), ('27', 450.0)]
@@ -95,7 +131,8 @@ def pobierz_sumy_kategorii(rok, miesiac):
         GROUP BY kategoria
         ORDER BY SUM(kwota) DESC
     """
-
+    # Nazwa pochodzi od "zero fill" (wypełnij zerami). Jej jedynym zadaniem jest upewnienie się, że ciąg znaków ma określoną długość.
+    # Jeśli jest za krótki, funkcja dodaje zera zawsze z lewej strony.
     m_str = str(miesiac).zfill(2)
     c.execute(query, (str(rok), m_str))
     wyniki = c.fetchall()

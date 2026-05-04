@@ -22,6 +22,7 @@ print(f"Mamy rok {rok}, miesiąc {miesiac}. Wykres będzie miał {liczba_dni} dn
 def wydatki_dzienne_skumulowane():
 
     # 1. Przykładowe surowe dane (wydatki z konkretnych dni)
+    #  Startowe kwoty (czyli 0 zł wydatku rozmieszczone na osi 30 razy)
     surowe_wydatki = [0] * liczba_dni
     print(surowe_wydatki)
     # [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
