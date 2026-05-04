@@ -189,8 +189,13 @@ while True:
                     conn.commit()
                     conn.close()
                     nowa_lista = db.pobierz_kategorie_db()
+                    # win_sett['-LISTA-'].update(nowa_lista)
+                    # window['-KAT-'].update(values=nowa_lista) 
+
+                    if window:
+                        window['-KAT-'].update(values=nowa_lista)
+                    # Czyścimy Input                    
                     win_sett['-LISTA-'].update(nowa_lista)
-                    window['-KAT-'].update(values=nowa_lista) 
             
             if e_set == "Odzyskaj kategorię":
                 wybrana = v_set['-LISTAUKRYTYCH-']
@@ -198,16 +203,16 @@ while True:
                     conn = sqlite3.connect('centus.db')
                     c = conn.cursor()
                     c.execute("UPDATE kategorie SET aktywna = 1 WHERE nazwa = ?", (wybrana[0],))
-                    odswiez_liste_kategorii()
+                    # odswiez_liste_kategorii()
                     conn.commit()
                     conn.close()
                     nowa_lista = db.pobierz_nieaktywne_kategorie_db()
-                    win_sett['-LISTA-'].update(nowa_lista)
+                    # win_sett['-LISTA-'].update(nowa_lista)
                     # window['-KAT-'].update(values=nowa_lista)
                     if window:
                         window['-KAT-'].update(values=nowa_lista)
                     # Czyścimy Input                    
-                    win_sett['-NEW-'].update('')
+                    win_sett['-LISTAUKRYTYCH-'].update('')
 
             """ 
             # Zmiana limitu 
