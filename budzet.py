@@ -122,7 +122,7 @@ while True:
             [sg.Input(key='-NEW-', size=(20, 1)), sg.Button("Dodaj")],
             [sg.Listbox(values=db.pobierz_kategorie_db(), size=(20, 5), key='-LISTA-')],
             [sg.Button("Ukryj kategorię", size=(19, 1))], 
-            [sg.Button("Odzyskaj kategorię", size=(19, 1)), sg.Listbox(key='-LISTAUKRYTYCH-', values=db.pobierz_kategorie_db(), size=(10, 1))], 
+            [sg.Button("Odzyskaj kategorię", size=(19, 1)), sg.Listbox(key='-LISTAUKRYTYCH-', values=db.pobierz_nieaktywne_kategorie_db(), size=(10, 1))], 
             # [sg.Button("Usuń z bazy", size=(19, 1))], 
             # [sg.Text(f"Zmiana limitu {dotychczasowy_limit}", keys='-LIMIT_TEXT_')],
             [sg.Text(f"Zmiana limitu")],
@@ -206,13 +206,16 @@ while True:
                     # odswiez_liste_kategorii()
                     conn.commit()
                     conn.close()
-                    nowa_lista = db.pobierz_nieaktywne_kategorie_db()
+                    # 2. Pobranie ŚWIEŻYCH danych dla obu list
+                    nowe_aktywne = db.pobierz_kategorie_db()
+                    nowe_nieaktywne = db.pobierz_nieaktywne_kategorie_db()
                     # win_sett['-LISTA-'].update(nowa_lista)
                     # window['-KAT-'].update(values=nowa_lista)
+                   # 3. Aktualizacja GUI (Wszystkich miejsc!)
+                    win_sett['-LISTA-'].update(values=nowe_aktywne)
+                    win_sett['-LISTAUKRYTYCH-'].update(values=nowe_nieaktywne)
                     if window:
-                        window['-KAT-'].update(values=nowa_lista)
-                    # Czyścimy Input                    
-                    win_sett['-LISTAUKRYTYCH-'].update('')
+                        window['-KAT-'].update(values=nowe_aktywne)
 
             """ 
             # Zmiana limitu 
