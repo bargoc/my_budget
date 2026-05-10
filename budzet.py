@@ -3,10 +3,14 @@ import wydatki_miesieczne as wm
 import wydatki_wg_kategorii as kw
 import db_manager as db
 import sqlite3
+import logging
 
+logging.basicConfig(filename='DebugInfo.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 # Przy starcie programu tworzymy tabele, jeśli nie istnieją
 db.inicjalizuj_baze()
+logging.debug('Inicjalizacja bazy danych')
 db.ustaw_poczatkowy_limit()
+logging.debug('Start programu')
 sg.theme('SystemDefaultForReal') # Lub np. 'LightBlue'
 # Definiujemy listę kategorii (to co ma być w środku listy rozwijanej)
 db.dodaj_poczatkowe_kategorie_db()
@@ -61,7 +65,7 @@ def odswiez_liste_kategorii(window):
 
 while True:
     event, values = window.read()
-    
+    print(f"event 1 {event}")
     if event in (sg.WIN_CLOSED, "Wyjście"):
         break 
 
@@ -72,7 +76,7 @@ while True:
         try:
             kwota = float(kwota_str)
             db.dodaj_wydatek_db(kat, kwota, uzytkownik="Basia")
-
+            logging.debug('Dodanie wydatku')
             # Resetowanie pola kwoty i potwierdzenie zmiany
             window['-KWOTA-'].update('')
             sg.popup_quick_message(f"Zapisano w bazie: {kwota} zł ({kat})", background_color="green", text_color="white")

@@ -4,6 +4,7 @@ from datetime import datetime
 import itertools
 import db_manager as db
 
+
 teraz = datetime.now()
 
 # Pobieram aktualną datę
@@ -49,6 +50,7 @@ def wydatki_dzienne_skumulowane():
     x_limit = [0, liczba_dni]
     y_limit = [0, limit_total]
     # Wykresy
+    plt.figure(figsize=(12, 7))
     plt.bar(wyswietlane_dni, wyswietlane_wydatki, color='skyblue')
     # Linia limitu
     plt.plot(x_limit, y_limit, color='red', linestyle='-', linewidth=1, label='Limit budzetowy')
@@ -59,8 +61,8 @@ def wydatki_dzienne_skumulowane():
     plt.ylabel('Wydatki skumulowane (PLN)')
     plt.title(f'Suma wydatków do dnia: {dzis} {calendar.month_name[miesiac]} {rok}')
     plt.grid(axis='y', linestyle='--', alpha=0.3)
-    
-    plt.show()
+    plt.tight_layout()
+    plt.show(block=False)
 
 # To, co masz na końcu pliku, schowaj pod tym warunkiem:
 if __name__ == "__main__":

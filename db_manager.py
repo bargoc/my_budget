@@ -1,5 +1,6 @@
 import sqlite3
 
+
 def inicjalizuj_baze():
     conn = sqlite3.connect('centus.db')
     kursor = conn.cursor()
@@ -38,6 +39,7 @@ def dodaj_poczatkowe_kategorie_db():
     # INSERT OR IGNORE sprawi, że nie zdublujemy wpisów przy każdym starcie
     kursor.executemany("INSERT OR IGNORE INTO kategorie (nazwa) VALUES (?)", 
                   [(k,) for k in poczatkowe])
+
     conn.commit()
     conn.close()
 
@@ -80,7 +82,6 @@ def pobierz_nieaktywne_kategorie_db():
     kursor.execute("SELECT nazwa FROM kategorie WHERE aktywna = 0 ORDER BY nazwa ASC")
     wyniki = kursor.fetchall()
     conn.close()
-    # Wynik z bazy to lista krotek [('Auto',), ('Dom',)], zamieniamy na prostą listę:
     return [k[0] for k in wyniki]    
 
 def dodaj_wydatek_db(kat, kwota, uzytkownik="Basia"):
@@ -94,6 +95,7 @@ def dodaj_wydatek_db(kat, kwota, uzytkownik="Basia"):
               (data_dzis, kat, kwota, uzytkownik))
     conn.commit()
     conn.close()
+    
 
 def pobierz_wydatki_miesieczne(rok, miesiac):
     import sqlite3
@@ -116,6 +118,7 @@ def pobierz_wydatki_miesieczne(rok, miesiac):
     # Przed wykonaniem nowych instrukcji przy użyciu tego samego połączenia należy pobrać wszystkie wiersze dla bieżącego zapytania.
     wyniki = c.fetchall()
     conn.close()
+    print(wyniki)
     return wyniki # Zwraca listę krotek np. [('01', 50.0), ('27', 450.0)]
 
 def pobierz_sumy_kategorii(rok, miesiac):
