@@ -190,13 +190,17 @@ def zaktualizuj_limit(nowa_kwota):
 
 def pobierz_liste_wydatkow(rok, miesiac):
     conn = sqlite3.connect('centus.db')
-    kursor = conn.cursor()
-     # Pobieramy datę (sformatowaną), kategorię i kwotę
-    query = "select data, kategoria, kwota from wydatki where strftime(%Y, data) = ? and strftime('%m', data) = ? order by data desc"
-    kursor.execute(query, (str(rok), f"{miesiac:02d}"))
-    dane = kursor.fetchall()
+    cursor = conn.cursor()
+    # Pobieramy datę (sformatowaną), kategorię i kwotę
+    query = """
+        SELECT data, kategoria, kwota 
+        FROM wydatki 
+        WHERE strftime('%Y', data) = ? AND strftime('%m', data) = ?
+        ORDER BY data DESC
+    """
+    cursor.execute(query, (str(rok), f"{miesiac:02d}"))
+    dane = cursor.fetchall()
     conn.close()
-    logging.debug('Pobieranie listy wszystkich miesięcznych wydatków')
     return dane
 
 if __name__ == "__main__":

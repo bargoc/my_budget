@@ -4,6 +4,8 @@ import wydatki_wg_kategorii as kw
 import db_manager as db
 import sqlite3
 import logging
+from datetime import datetime
+import widok_tabeli as wt
 
 logging.basicConfig(filename='DebugInfo.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
@@ -17,7 +19,6 @@ sg.theme('SystemDefaultForReal') # Lub np. 'LightBlue'
 db.dodaj_poczatkowe_kategorie_db()
 lista_kategorii = db.pobierz_kategorie_db()
 # dotychczasowy_limit = db.pobierz_aktualny_limit()
-
 
 layout = [
     [sg.Text("Budżet Domowy", font=("Arial", 18)), sg.Push(), sg.Button("⚙", key="Ustawienia", font=("Arial", 18), size=(2, 1))], 
@@ -36,14 +37,12 @@ layout = [
     [sg.HorizontalSeparator(), sg.Text('         ')], # Estetyczna linia oddzielająca
     [sg.Button("Pokaż wykres skumulowany", size=(22, 1))],
     [sg.Button("Pokaż kategorie", size=(22, 1))],
+    [sg.Button("Lista wydatków", size=(22,1))],
     [sg.Button("Wyjście", size=(22, 1)), sg.Button("Ustawienia", size=(4, 1))], # NOWY PRZYCISKsg.Button("Wyjście", size=(22, 1))]
     # [sg.Button("Wyjście", size=(22, 1))]
 ]
 
 window = sg.Window("Centuś", layout)
-
-# Tymczasowa lista na dsiejsze zakupy
-# dzisiejsze_wpisy = []
 
 def odswiez_liste_kategorii(window):
     nowe_kategorie = db.pobierz_kategorie() # Twoja funkcja pobierająca listę
@@ -54,19 +53,10 @@ def odswiez_liste_kategorii(window):
     else:
         print("Nie mogę odświeżyć listy – okno jest zamknięte.")
 
-""" def odswiez_aktywne_kategorie(window):
-    nowe_kategorie = db.pobierz_kategorie() # Twoja funkcja pobierająca listę
-    
-    # ZABEZPIECZENIE:
-   # Aktualizujesz konkretne okno, które dostałaś jako argument
-    if window:
-        window['-LISTA-'].update(values=nowa_lista)
-        # Opcjonalnie: jeśli chcesz też odświeżyć główne okno:
-        # window_glowne['-KAT-'].update(values=nowa_lista) """
-
 while True:
     event, values = window.read()
-    print(f"event 1 {event}")
+    print(f"event: {event}")
+    logging.debug(f"Zdarzenie: {event}")
     if event in (sg.WIN_CLOSED, "Wyjście"):
         break 
 
@@ -80,6 +70,7 @@ while True:
             logging.debug('Dodanie wydatku')
             # Resetowanie pola kwoty i potwierdzenie zmiany
             window['-KWOTA-'].update('')
+            logging.debug('Dodanie wydatku')
             sg.popup_quick_message(f"Zapisano w bazie: {kwota} zł ({kat})", background_color="green", text_color="white")
 
         except ValueError:
@@ -91,34 +82,7 @@ while True:
 
     if event == "Pokaż kategorie":
         kw.wydatki_kategorie()
-    """ 
-    if event == " + ":
-        nowa = values['-NOWA_KAT-'].strip()
-        if nowa:
-            conn = sqlite3.connect('centus.db')
-            kursor = conn.cursor()
-            try:
-                # 1. NAJPIERW DODAJEMY DO BAZY (tego brakowało!)
-                # {nowa} vs (nowa,): W SQL (sqlite3) argumenty podajemy zawsze jako krotkę (tuple) w nawiasach okrągłych z przecinkiem, 
-                # a nie w klamrach {}.
-                kursor.execute("INSERT INTO kategorie (nazwa, aktywna) VALUES (?, 1)", (nowa,))
-                conn.commit()
-                
-                # 2. POTEM ODŚWIEŻAMY COMBO (pobieramy nową listę z bazy)
-                nowa_lista = db.pobierz_kategorie_db()
-                window['-KAT-'].update(values=nowa_lista, value=nowa)
-                
-                # 3. CZYŚCIMY POLE WPISYWANIA
-                window['-NOWA_KAT-'].update('')
-                sg.popup_quick_message(f"Dodano kategorię: {nowa}", background_color="green")
-                
-            except sqlite3.IntegrityError:
-                sg.popup_error("Taka kategoria już istnieje!")
-            finally:
-                conn.close() """
-
-    # window.close()
-
+ 
     if event == "Ustawienia":
         # Tworzymy układ nowego okna
         # dotychczasowy_limit = db.pobierz_aktualny_limit()
@@ -246,7 +210,10 @@ while True:
             if event == "Pokaż kategorie":
                 kw.wydatki_kategorie()
 
-        window.close()
+    if event == "Lista wydatków":
+        wt.okno_listy_wydatkow()        
+print(f"Ostatnia linia widnows.close(). Zdarzenie: {event}") 
+window.close()
 
 # print([m for m in dir(sg.Combo) if not m.startswith('_')])
 
