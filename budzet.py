@@ -6,6 +6,7 @@ import sqlite3
 import logging
 
 logging.basicConfig(filename='DebugInfo.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.getLogger('matplotlib').setLevel(logging.WARNING)
 # Przy starcie programu tworzymy tabele, jeśli nie istnieją
 db.inicjalizuj_baze()
 logging.debug('Inicjalizacja bazy danych')
