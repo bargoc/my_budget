@@ -1,4 +1,5 @@
 import sqlite3
+import logging
 
 
 def inicjalizuj_baze():
@@ -186,6 +187,17 @@ def zaktualizuj_limit(nowa_kwota):
     # Po insert niezbędny jest commit
     conn.commit()
     conn.close()
+
+def pobierz_liste_wydatkow(rok, miesiac):
+    conn = sqlite3.connect('centus.db')
+    kursor = conn.cursor()
+     # Pobieramy datę (sformatowaną), kategorię i kwotę
+    query = "select data, kategoria, kwota from wydatki where strftime(%Y, data) = ? and strftime('%m', data) = ? order by data desc"
+    kursor.execute(query, (str(rok), f"{miesiac:02d}"))
+    dane = kursor.fetchall()
+    conn.close()
+    logging.debug('Pobieranie listy wszystkich miesięcznych wydatków')
+    return dane
 
 if __name__ == "__main__":
     inicjalizuj_baze()
