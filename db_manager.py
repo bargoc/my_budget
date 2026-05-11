@@ -193,7 +193,7 @@ def pobierz_liste_wydatkow(rok, miesiac):
     cursor = conn.cursor()
     # Pobieramy datę (sformatowaną), kategorię i kwotę
     query = """
-        SELECT data, kategoria, kwota 
+        SELECT ID, data, kategoria, kwota 
         FROM wydatki 
         WHERE strftime('%Y', data) = ? AND strftime('%m', data) = ?
         ORDER BY data DESC
@@ -202,6 +202,13 @@ def pobierz_liste_wydatkow(rok, miesiac):
     dane = cursor.fetchall()
     conn.close()
     return dane
+
+def usun_wydatek(id_wydatku):
+    conn = sqlite3.connect('centus.db')
+    cursor = conn.cursor()
+    cursor.execute("delete from wydatki where id = ?", (id_wydatku,))
+    conn.commit()
+    conn.close()
 
 if __name__ == "__main__":
     inicjalizuj_baze()

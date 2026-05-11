@@ -15,7 +15,7 @@ def wydatki_kategorie():
         plt.text(0.5, 0.5, 'Brak danych w tym miesiącu', 
                  horizontalalignment='center', 
                  verticalalignment='center', 
-                 fontsize=10, 
+                 fontsize=9, 
                  color='gray',
                  transform=plt.gca().transAxes)
         plt.show()
@@ -24,7 +24,7 @@ def wydatki_kategorie():
     # Rozpakowujemy dane: kategoria -> categories, suma -> values
     categories, values = zip(*dane)
     # Możesz ustawić rozmiar wykresu w matplotlib, żeby był szerszy: np. Szerokość 7 cali, wysokość 6
-    plt.figure(figsize=(7, 6))
+    plt.figure(figsize=(6, 5))
     bars = plt.bar(categories, values, color='skyblue')
     
     # Dodajemy etykiety z kwotami nad słupkami

@@ -50,7 +50,7 @@ def wydatki_dzienne_skumulowane():
     x_limit = [0, liczba_dni]
     y_limit = [0, limit_total]
     # Wykresy
-    plt.figure(figsize=(12, 7))
+    plt.figure(figsize=(7, 6))
     plt.bar(wyswietlane_dni, wyswietlane_wydatki, color='skyblue')
     # Linia limitu
     plt.plot(x_limit, y_limit, color='red', linestyle='-', linewidth=1, label='Limit budzetowy')
