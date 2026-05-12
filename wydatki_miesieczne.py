@@ -46,14 +46,30 @@ def wydatki_dzienne_skumulowane():
     wyswietlane_wydatki = wszystkie_skumulowane[:dzis]
     limit_total = db.pobierz_aktualny_limit()
 
+    # 3.
+    bilans = limit_total - wszystkie_skumulowane[-1]
+    print(f"Bilans (limit - wydatki): {bilans} PLN")
+
     # Kwoty do wydania rozłożone równomiernie na cały miesiąc
     x_limit = [0, liczba_dni]
     y_limit = [0, limit_total]
+
+    
+    # 2.
+    # DODAWANIE BILANSU NA WYKRES ---
+    # Tworzymy tekst
+    znak = "+" if bilans >= 0 else ""
+    tekst_bilansu = f"Bilans końcowy:\n{znak}{bilans:.2f} zł"
+    kolor_tekstu = "green" if bilans >= 0 else "red"
     # Wykresy
     plt.figure(figsize=(7, 6))
     plt.bar(wyswietlane_dni, wyswietlane_wydatki, color='skyblue')
     # Linia limitu
     plt.plot(x_limit, y_limit, color='red', linestyle='-', linewidth=1, label='Limit budzetowy')
+
+    # 1
+    # Dodajemy tekst bilansu w prawym górnym rogu wykresu
+    plt.text(0.98, 0.07, tekst_bilansu, horizontalalignment='right', verticalalignment='top', transform=plt.gca().transAxes, fontsize=9, color=kolor_tekstu, bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
 
     plt.xlim(0, liczba_dni + 1)
     plt.ylim(0, max(limit_total, max(wszystkie_skumulowane)) * 1.1) # Skalowanie osi Y

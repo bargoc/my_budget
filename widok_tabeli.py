@@ -53,10 +53,13 @@ def okno_listy_wydatkow():
                     db.usun_wydatek(id_do_usuniecia)
                     # Odświeżamy widok
                     dane = odswiez_dane()
-                    # dane = db.pobierz_liste_wydatkow()
                     window['-TABELA_LISTA-'].update(values=dane)
                     sg.popup_quick_message("Wydatek usunięty.", background_color="red")
                 else:
-                    sg.popup_error("Zaznacz wydatek, który chcesz usunąć.")
+                    # sg.popup_error("Zaznacz wydatek, który chcesz usunąć.")
+                    sg.popup_quick_message("Proszę najpierw zaznaczyć wydatek do usunięcia.", 
+                       background_color="gray", 
+                       text_color="white", 
+                       font=("Helvetica", 12))
     window.close()
 
