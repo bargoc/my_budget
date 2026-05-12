@@ -53,6 +53,32 @@ def odswiez_liste_kategorii(window):
     else:
         print("Nie mogę odświeżyć listy – okno jest zamknięte.")
 
+def okno_wyboru_daty():
+    dzis = datetime.now()
+    lata = [dzis.year, dzis.year - 1, dzis.year - 2]
+    miesiace = [f"{i:02d}" for i in range(1, 13)]
+
+    layout = [
+        [sg.Text("Wybierz okres dla wykresu:")],
+        [sg.Text("Miesiąc:"), sg.Combo(miesiace, default_value=dzis.strftime("%m"), key='-MIESIAC-', readonly=True, size=(10,1))],
+        [sg.Text("Rok:", size=(6,1)), sg.Combo(lata, default_value=dzis.year, key='-ROK-', readonly=True, size=(10,1))],
+        [sg.Button("OK", size=(8,1)), sg.Button("Anuluj", size=(8,1))]
+    ]
+
+    window = sg.Window("Wybierz datę", layout, modal=True)
+    wybrana_data = None
+
+    while True:
+        event, values = window.read()
+        if event == "OK":
+            wybrana_data = (int(values['-ROK-']), int(values['-MIESIAC-']))
+            break
+        if event in (sg.WIN_CLOSED, "Anuluj"):
+            break
+    
+    window.close()
+    return wybrana_data
+
 while True:
     event, values = window.read()
     print(f"event: {event}")
@@ -81,7 +107,10 @@ while True:
         wm.wydatki_dzienne_skumulowane()
 
     if event == "Pokaż kategorie":
-        kw.wydatki_kategorie()
+        data = okno_wyboru_daty()
+        if data:
+            rok, miesiac = data
+            kw.wydatki_kategorie(rok, miesiac)
  
     if event == "Ustawienia":
         # Tworzymy układ nowego okna

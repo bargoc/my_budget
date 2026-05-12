@@ -1,14 +1,25 @@
 import matplotlib.pyplot as plt
 import db_manager as db
 from datetime import datetime
+import FreeSimpleGUI as sg
 
-def wydatki_kategorie():
+def wydatki_kategorie(rok=None, miesiac=None):
     # Pobieramy aktualną datę, by wiedzieć o jaki miesiąc pytać
-    dzis = datetime.now()
-    rok = dzis.year
-    miesiac = dzis.month
+    # dzis = datetime.now()
+    # rok = dzis.year
+    # miesiac = dzis.month
+    if rok is None or miesiac is None:
+        dzis = datetime.now()
+        rok, miesiac = dzis.year, dzis.month
+    else:
+        # Tworzymy obiekt daty tylko dla potrzeb tytułu wykresu
+        dzis = datetime(rok, miesiac, 1) 
 
     dane = db.pobierz_sumy_kategorii(rok, miesiac)
+
+    if not dane:
+        sg.popup_quick_message(f"Brak danych dla okresu {miesiac}/{rok}")
+        return
 
     if not dane:
         # plt.text(0.5, 0.5, 'Brak danych w tym miesiącu, suma -> values')
