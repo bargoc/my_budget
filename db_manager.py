@@ -20,6 +20,7 @@ def inicjalizuj_baze():
                   rok INTEGER,
                   miesiac INTEGER,
                   limit_kwota REAL)'''
+    urlop_sql = '''CREATE TABLE IF NOT EXISTS wydatki_urlop (id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT, kategoria TEXT, kwota REAL, uzytkownik TEXT)'''
 
     # Tabela wydatków
     kursor.execute(wydatki_sql)
@@ -28,6 +29,8 @@ def inicjalizuj_baze():
     kursor.execute(kategorie_sql)
 
     kursor.execute(limit_mie_sql)
+
+    kursor.execute(urlop_sql)
     
     conn.commit()
     conn.close()
@@ -263,6 +266,23 @@ def pobierz_sumy_miesieczne_w_roku(rok):
     dane = cursor.fetchall()
     conn.close()
     return dane # Zwraca listę krotek, np. [('01', 1200.50), ('02', 950.00)]
+
+""" def stwórz_tabele_urlopowa():
+    conn = sqlite3.connect('centus.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+                   CREATE TABLE IF NOT EXISTS wydatki_urlop (id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT, kategoria TEXT, kwota REAL, uzytkownik TEXT)''')
+    conn.commit()
+    conn.close() """
+
+def dodaj_wydatek_urlop(data, kategoria, kwota, uzytkownik):
+    conn = sqlite3.connect('centus.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO wydatki_urlop (data, kategoria, kwota, uzytkownik) VALUES (?, ?, ?, ?)
+    ''', (data, kategoria, float(kwota), uzytkownik))
+    conn.commit()
+    conn.close()
 
 if __name__ == "__main__":
     inicjalizuj_baze()

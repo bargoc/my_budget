@@ -38,13 +38,100 @@ layout = [
     [sg.Button("Pokaż wykres skumulowany", size=(22, 1))],
 
     [sg.Button("Pokaż kategorie", size=(22, 1))],
-    [sg.Button("Lista wydatków", size=(22,1))],
+    [sg.Button("Lista wydatków", size=(22, 1))],
+    [sg.Button("Urlop Duo", size=(22, 1))],
     [sg.Button("Wykres roczny", size=(12, 1)), sg.Button("Wyjście", size=(8, 1))], # NOWY PRZYCISKsg.Button("Wyjście", size=(22, 1))]
     # [sg.Button("Wyjście", size=(22, 1))]
 ]
 
 window = sg.Window("Centuś", layout)
 
+def pobierz_dane_urlopowe():
+    conn = sqlite3.connect('centus.db')
+    cursor = conn.cursor()
+    # Pobieramy wydatki posortowane chronologicznie
+    cursor.execute("SELECT data, kategoria, kwota, uzytkownik FROM wydatki_urlop ORDER BY data ASC")
+    wiersze = cursor.fetchall()
+    conn.close()
+
+    tabela_gui = []
+    suma_skumulowana = 0.0
+
+    for data, kategoria, kwota, uzytkownik in wiersze:
+        suma_skumulowana += kwota
+        
+        # Rozdzielamy kwoty na kolumny w zależności od tego, kto płacił
+        kwota_basia = f"{kwota:.2f}" if uzytkownik == 'Basia' else ""
+        kwota_ala = f"{kwota:.2f}" if uzytkownik == 'Ala' else ""
+        
+        # Tworzymy wiersz do wyświetlenia w GUI
+        tabela_gui.append([
+            data[:10], # Tylko data RRRR-MM-DD bez godzin
+            kategoria,
+            kwota_basia,
+            kwota_ala,
+            f"{suma_skumulowana:.2f}" # Suma narastająca dzień po dniu
+        ])
+        
+    return tabela_gui
+
+def okno_urlop():
+    kategorie_urlop = ["Podróż", "Noclegi", "Żywność", "Wejściówki", "Restauracja"]
+    naglowki = ["Data", "Kategoria", "Wydatki Basia", "Wydatki Ala", "Suma Skumulowana"]
+    
+    # Pobieramy dane startowe z bazy
+    dane_tabeli = pobierz_dane_urlopowe()
+
+    layout = [
+        [sg.Text("🌴 Moduł Urlopowy – Bilans Wspólny", font=('Helvetica', 14, 'bold'))],
+        
+        # Sekcja wprowadzania nowego wydatku
+        [sg.Frame("Dodaj wydatek urlopowy", [
+            [sg.Text("Kategoria:"), sg.Combo(kategorie_urlop, default_value="Żywność", key="-KAT-", readonly=True),
+             sg.Text("Kwota:"), sg.Input(size=(10,1), key="-KWOTA-")],
+            [sg.Text("Kto płacił:"), 
+             sg.Radio("Basia", "KTO", key="-R_BASIA-", default=True), 
+             sg.Radio("Alicja", "KTO", key="-R_ALA-"),
+             sg.Push(), sg.Button("Dodaj wpis", key="-DODAJ_URLOP-")]
+        ])],
+        
+        # Główna lista wydatków do kontroli zapisów
+        [sg.Table(values=dane_tabeli, headings=naglowki, auto_size_columns=True,
+                  display_row_numbers=False, justification='center', key="-TABELA_URLOP-",
+                  num_rows=15, alternating_row_color='red')],
+        
+        [sg.Button("Zamknij")]
+    ]
+
+    win_urlop = sg.Window("Urlop z Alicją", layout, modal=True, finalize=True)
+
+    while True:
+        event, values = win_urlop.read()
+        if event in (sg.WIN_CLOSED, "Zamknij"):
+            break
+            
+        if event == "-DODAJ_URLOP-":
+            # Logika dodawania
+            try:
+                kwota = float(values["-KWOTA-"].replace(',', '.'))
+                kat = values["-KAT-"]
+                kto = "Basia" if values["-R_BASIA-"] else "Ala"
+                dzis = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                # Zapis do bazy
+                db.dodaj_wydatek_urlop(dzis, kat, kwota, kto)
+                
+                # Odświeżenie tabeli w oknie
+                nowe_dane = pobierz_dane_urlopowe()
+                win_urlop["-TABELA_URLOP-"].update(values=nowe_dane)
+                win_urlop["-KWOTA-"].update("") # czyszczenie pola kwoty
+                
+            except ValueError:
+                sg.popup_error("Wprowadź poprawną kwotę!")
+
+    win_urlop.close()
+
+    
 def odswiez_liste_kategorii(window):
     nowe_kategorie = db.pobierz_kategorie() # Twoja funkcja pobierająca listę
     
@@ -154,6 +241,14 @@ while True:
         rok = okno_wyboru_roku()
         if rok:
             wm.wykres_roczny(rok)
+
+    if  event == "Urlop Duo":
+        """ data = okno_urlop
+        if data:
+            uzytkownik = data """
+            # Po prostu wywołujemy okno. Ono zajmie się resztą.
+        okno_urlop()
+# "Data", "Kategoria", "Wydatki Basia", "Wydatki Ala", "Suma Skumulowana"           
  
     if event == "Ustawienia":
         # Tworzymy układ nowego okna
