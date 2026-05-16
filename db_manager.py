@@ -35,6 +35,39 @@ def inicjalizuj_baze():
     conn.commit()
     conn.close()
 
+import sqlite3
+
+def pobierz_tabele_urlopowa():
+    """Pobiera dane z bazy i przygotowuje je bezpośrednio w formacie dla widgetu sg.Table."""
+    conn = sqlite3.connect('centus.db')
+    cursor = conn.cursor()
+    
+    # Pobieramy wydatki posortowane chronologicznie
+    cursor.execute("SELECT data, kategoria, kwota, uzytkownik FROM wydatki_urlop ORDER BY data ASC")
+    wiersze = cursor.fetchall()
+    conn.close()
+
+    tabela_gui = []
+    suma_skumulowana = 0.0
+
+    for data, kategoria, kwota, uzytkownik in wiersze:
+        suma_skumulowana += kwota
+        
+        # Rozdzielamy kwoty na odpowiednie kolumny
+        kwota_basia = f"{kwota:.2f}" if uzytkownik == 'Basia' else ""
+        kwota_ala = f"{kwota:.2f}" if uzytkownik == 'Ala' else ""
+        
+        # Tworzymy wiersz (skracamy datę do formatu RRRR-MM-DD)
+        tabela_gui.append([
+            data[:10], 
+            kategoria,
+            kwota_basia,
+            kwota_ala,
+            f"{suma_skumulowana:.2f}"
+        ])
+        
+    return tabela_gui
+
 
 def dodaj_poczatkowe_kategorie_db():
     poczatkowe = ['Żywność', 'Dom', 'Auto']
@@ -63,13 +96,18 @@ def pobierz_kategorie_db():
     # c.execute("INSERT INTO wydatki (data, kategoria, kwota, uzytkownik) VALUES (?, ?, ?, ?)", (data_dzis, kat, kwota, uzytkownik)) ...
     # używamy 4 wartości, aby wypełnić 4 znaki zapytania w tabeli.
 
-def ukryj_kategorie_db():
+def ukryj_kategorie_db(nazwa_kategorii):
+    # Ukrywa kategorię w bazie i zwraca nową listę aktywnych kategorii.
     conn = sqlite3.connect('centus.db')
     c = conn.cursor()
-    c.execute("UPDATE kategorie SET aktywna = 0 WHERE nazwa = ?", (nazwa,))
-    # conn.commit()
+    # 1. Wykonujemy zmianę (używamy zmiennej przekazanej w argumencie)
+    c.execute("UPDATE kategorie SET aktywna = 0 WHERE nazwa = ?", (nazwa_kategorii,))
+    # 2. KONIECZNIE zatwierdzamy zmiany w pliku bazy danych
+    conn.commit()
+    # 3. Od razu pobieramy świeżą listę aktywnych kategorii, żeby przekazać ją do GUI
     wyniki = c.fetchall()
     conn.close()
+    # Zwracamy czystą listę tekstową, np. ['Auto', 'Dom', 'Żywność']
     return [k[0] for k in wyniki]
 
 def przywroc_kategorie_db(nazwa):
@@ -267,14 +305,6 @@ def pobierz_sumy_miesieczne_w_roku(rok):
     conn.close()
     return dane # Zwraca listę krotek, np. [('01', 1200.50), ('02', 950.00)]
 
-""" def stwórz_tabele_urlopowa():
-    conn = sqlite3.connect('centus.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-                   CREATE TABLE IF NOT EXISTS wydatki_urlop (id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT, kategoria TEXT, kwota REAL, uzytkownik TEXT)''')
-    conn.commit()
-    conn.close() """
-
 def dodaj_wydatek_urlop(data, kategoria, kwota, uzytkownik):
     conn = sqlite3.connect('centus.db')
     cursor = conn.cursor()
@@ -283,6 +313,29 @@ def dodaj_wydatek_urlop(data, kategoria, kwota, uzytkownik):
     ''', (data, kategoria, float(kwota), uzytkownik))
     conn.commit()
     conn.close()
+
+def zarzadzaj_dodawaniem_kategorii(n_kat):
+    # Logika SQL dla dodawania kategorii.
+    # Zwraca krotkę: (typ_komunikatu, tresc_komunikatu)
+    conn = sqlite3.connect('centus.db')
+    kursor = conn.cursor()
+
+    # 1. Sprawdzamy, czy taka kategoria już istnieje
+    kursor.execute("SELECT aktywna FROM kategorie WHERE nazwa = ?", (n_kat,))
+    istnieje = kursor.fetchone()
+
+    status = ()
+    if istnieje[0] == 0:
+        # Jeśli jest ukryta, to ją aktywujemy
+        kursor.execute("UPDATE kategorie SET aktywna = 1 WHERE nazwa = ?", (n_kat))
+        status = ("quick", f"Przywrócono kategorię: {n_kat}")
+    else:
+        # 2. Jeśli nie istnieje, dodajemy nową
+        kursor.execute("INSERT INTO kategorie (nazwa, aktywna) VALUES (?, 1)", (n_kat,))
+        status = ("quick", f"Dodano nową kategorię: {n_kat}")
+    conn.commit()
+    conn.close()
+    return status
 
 if __name__ == "__main__":
     inicjalizuj_baze()

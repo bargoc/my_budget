@@ -46,7 +46,7 @@ layout = [
 
 window = sg.Window("Centuś", layout)
 
-def pobierz_dane_urlopowe():
+""" def pobierz_dane_urlopowe():
     conn = sqlite3.connect('centus.db')
     cursor = conn.cursor()
     # Pobieramy wydatki posortowane chronologicznie
@@ -62,7 +62,7 @@ def pobierz_dane_urlopowe():
         
         # Rozdzielamy kwoty na kolumny w zależności od tego, kto płacił
         kwota_basia = f"{kwota:.2f}" if uzytkownik == 'Basia' else ""
-        kwota_ala = f"{kwota:.2f}" if uzytkownik == 'Ala' else ""
+        kwota_ala = f"{kwota:.2f}" if uzytkownik == 'Alicja' else ""
         
         # Tworzymy wiersz do wyświetlenia w GUI
         tabela_gui.append([
@@ -73,21 +73,22 @@ def pobierz_dane_urlopowe():
             f"{suma_skumulowana:.2f}" # Suma narastająca dzień po dniu
         ])
         
-    return tabela_gui
+    return tabela_gui """
 
 def okno_urlop():
-    kategorie_urlop = ["Podróż", "Noclegi", "Żywność", "Wejściówki", "Restauracja"]
+    kategorie_urlop = ["Podróż", "Noclegi"]
     naglowki = ["Data", "Kategoria", "Wydatki Basia", "Wydatki Ala", "Suma Skumulowana"]
     
     # Pobieramy dane startowe z bazy
-    dane_tabeli = pobierz_dane_urlopowe()
+    # dane_tabeli = pobierz_dane_urlopowe()
+    dane_tabeli = db.pobierz_tabele_urlopowa()
 
     layout = [
         [sg.Text("🌴 Moduł Urlopowy – Bilans Wspólny", font=('Helvetica', 14, 'bold'))],
         
         # Sekcja wprowadzania nowego wydatku
         [sg.Frame("Dodaj wydatek urlopowy", [
-            [sg.Text("Kategoria:"), sg.Combo(kategorie_urlop, default_value="Żywność", key="-KAT-", readonly=True),
+            [sg.Text("Kategoria:"), sg.Combo(kategorie_urlop, default_value="Żywność", key="-Combo_KAT-", readonly=True),
              sg.Text("Kwota:"), sg.Input(size=(10,1), key="-KWOTA-")],
             [sg.Text("Kto płacił:"), 
              sg.Radio("Basia", "KTO", key="-R_BASIA-", default=True), 
@@ -122,7 +123,7 @@ def okno_urlop():
                 db.dodaj_wydatek_urlop(dzis, kat, kwota, kto)
                 
                 # Odświeżenie tabeli w oknie
-                nowe_dane = pobierz_dane_urlopowe()
+                nowe_dane = db.pobierz_dane_urlopowe()
                 win_urlop["-TABELA_URLOP-"].update(values=nowe_dane)
                 win_urlop["-KWOTA-"].update("") # czyszczenie pola kwoty
                 
@@ -130,7 +131,6 @@ def okno_urlop():
                 sg.popup_error("Wprowadź poprawną kwotę!")
 
     win_urlop.close()
-
     
 def odswiez_liste_kategorii(window):
     nowe_kategorie = db.pobierz_kategorie() # Twoja funkcja pobierająca listę
@@ -276,12 +276,24 @@ while True:
             if e_set in (sg.WIN_CLOSED, "Zamknij"):
                 print("LOG: Przechwycono zdarzenie zamknięcia! Wychodzę z pętli.")
                 break
-
                 
             if e_set == "Dodaj":
                 n_kat = v_set['-NEW-'].strip()
                 if n_kat:
-                    conn = sqlite3.connect('centus.db') 
+                    # 1. Wywołujemy czystą logikę z bazy danych
+                    typ_msg, tresc_msg = db.zarzadzaj_dodawaniem_kategorii(n_kat)
+
+                    # 2. Wyświetlamy odpowiedni komunikat w GUI
+                    if typ_msg == "quick":
+                        sg.popup_quick_message(tresc_msg)
+                    elif typ_msg == "error":
+                        sg.popup_error(tresc_msg)
+
+                    # 3. Odświeżamy listę w oknach korzystając z gotowej metody
+                    
+
+
+                    """ conn = sqlite3.connect('centus.db') 
                     c = conn.cursor()
 
                     # 1. Sprawdzamy, czy taka kategoria już w ogóle istnieje (nawet ukryta)
@@ -303,32 +315,44 @@ while True:
                         sg.popup_quick_message(f"Dodano nową kategorię: {n_kat}")
 
                     conn.commit()
-                    conn.close()
+                    conn.close() """
 
                     # Odświeżamy widoki w obu oknach
                     nowa_lista = db.pobierz_kategorie_db()
                     # Aktualizacja listy w oknie ustawień
-                    # win_sett['-LISTA-'].update(nowa_lista)
+                    # Czyszczenie pola wejściowego po dodaniu (zakładam, że pole Input ma klucz '-NEW-') Czyścimy Input 
+                    win_sett['-LISTA-'].update(nowa_lista)
 
                     # Aktualizacja Combo w głównym oknie
-                    if window:
+                    """if window:
                         win_sett['-LISTA-'].update(nowa_lista)
-                    # Czyścimy Input                    
-                    win_sett['-LISTA-'].update(nowa_lista)
+                    # Czyszczenie pola wejściowego po dodaniu (zakładam, że pole Input ma klucz '-NEW-'). Czyścimy Input                    
+                    win_sett['-LISTA-'].update(nowa_lista) """
+
+                    # Aktualizacja Combo w oknie głównym (jeśli obiekt głównego okna istnieje)
+                    if window:
+                        window['-COMBO_KAT-'].update(values=nowa_lista) # użyj właściwego klucza Twojego Combo
                    
             
             if e_set == "Ukryj kategorię":
                 wybrana = v_set['-LISTA-']
                 if wybrana:
-                    conn = sqlite3.connect('centus.db')
+                    # Wywołujemy funkcję z argumentem, a ona zwraca nam nową listę
+                    nowa_lista = db.ukryj_kategorie_db(wybrana)
+
+                    # Odświeżamy widok w GUI
+                    win_sett['-LISTA-'].update(nowa_lista)
+                    sg.popup_quick_message(f"Ukryto kategorię: {wybrana}")
+
+                    """conn = sqlite3.connect('centus.db')
                     c = conn.cursor()
                     c.execute("UPDATE kategorie SET aktywna = 0 WHERE nazwa = ?", (wybrana[0],))
 
                     conn.commit()
                     conn.close()
-                    nowa_lista = db.pobierz_kategorie_db()
-                    # win_sett['-LISTA-'].update(nowa_lista)
-                    # window['-KAT-'].update(values=nowa_lista) 
+                    nowa_lista = db.pobierz_kategorie_db() 
+                    win_sett['-LISTA-'].update(nowa_lista)
+                    window['-KAT-'].update(values=nowa_lista) """
 
                     if window:
                         window['-KAT-'].update(values=nowa_lista)
