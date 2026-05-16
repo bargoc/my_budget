@@ -39,7 +39,7 @@ layout = [
 
     [sg.Button("Pokaż kategorie", size=(22, 1))],
     [sg.Button("Lista wydatków", size=(22,1))],
-    [sg.Button("Wyjście", size=(22, 1)), sg.Button("Ustawienia", size=(4, 1))], # NOWY PRZYCISKsg.Button("Wyjście", size=(22, 1))]
+    [sg.Button("Wykres roczny", size=(12, 1)), sg.Button("Wyjście", size=(8, 1))], # NOWY PRZYCISKsg.Button("Wyjście", size=(22, 1))]
     # [sg.Button("Wyjście", size=(22, 1))]
 ]
 
@@ -80,6 +80,40 @@ def okno_wyboru_daty():
     window.close()
     return wybrana_data
 
+def okno_wyboru_roku():
+    dzis = datetime.now()
+    # ???
+    lata = [dzis.year, dzis.year - 1, dzis.year - 2]
+    layout =[
+        [sg.Text("Wybierz rocznik wykresu: ")],
+        [sg.Text("Rok:"), sg.Combo(lata, default_value=dzis.year, key='-ROK-', readonly=True)],
+        [sg.Button("OK"), sg.Button("Anuluj")]
+    ]
+    window = sg.Window("Wybierz rok", layout, modal=True)
+    wybrany_rok = None
+
+    while True:
+        event, values = window.read()
+        if event == "OK":
+            wybrany_rok = int(values['-ROK-'])
+            break
+        if event in (sg.WIN_CLOSED, "Anuluj"):
+            break
+    window.close()
+    return wybrany_rok
+
+""" def okno_ustawien():
+    win_sett = sg.Window("Ustawienia", layout)
+    while True:
+        e_set, v_set = win_sett.read()
+        if e_set in (sg.WIN_CLOSED, "Zamknij"):
+            # 1. Kliknięcie powoduje WYJŚCIE z pętli...
+            break  
+
+    # <--- TUTAJ JESTEŚMY PO KLIKNIĘCIU "ZAMKNIJ"
+    # Jeśli w tym miejscu brakuje poniższej linijki:
+    win_sett.close() """
+
 while True:
     event, values = window.read()
     print(f"event: {event}")
@@ -115,6 +149,11 @@ while True:
             rok, miesiac = data
             # wm.wykres_skumulowany(rok, miesiac)
             wm.wydatki_dzienne_skumulowane()
+
+    if event == "Wykres roczny":
+        rok = okno_wyboru_roku()
+        if rok:
+            wm.wykres_roczny(rok)
  
     if event == "Ustawienia":
         # Tworzymy układ nowego okna
@@ -130,17 +169,17 @@ while True:
             [sg.Text(f"Zmiana limitu")],
             [sg.Input(key='-CURRENTLIMIT-', size=(20,1)), sg.Button("Zmień")],
             [sg.Text(key='-INFO_LIMIT-')],
-            [sg.Button("Zamknij", size=(19, 1))]
+            [sg.Button("Zamknij", size=(19, 1))]   
         ]
         # modal=True: To ważny argument w sg.Window. Sprawia on, że dopóki nie zamkniesz Ustawień, nie możesz klikać w głównym oknie Centusia.
         # To zapobiega błędom i "bałaganowi" w bazie danych.
 
         win_sett = sg.Window("Ustawienia", layout_settings, modal=True)
 
-
         while True:
             e_set, v_set = win_sett.read()
             if e_set in (sg.WIN_CLOSED, "Zamknij"):
+                print("LOG: Przechwycono zdarzenie zamknięcia! Wychodzę z pętli.")
                 break
 
                 
@@ -181,6 +220,7 @@ while True:
                         win_sett['-LISTA-'].update(nowa_lista)
                     # Czyścimy Input                    
                     win_sett['-LISTA-'].update(nowa_lista)
+                   
             
             if e_set == "Ukryj kategorię":
                 wybrana = v_set['-LISTA-']
@@ -219,7 +259,7 @@ while True:
                     win_sett['-LISTAUKRYTYCH-'].update(values=nowe_nieaktywne)
                     if window:
                         window['-KAT-'].update(values=nowe_aktywne)
- 
+        
             # Zmiana limitu 
             if e_set == 'Zmień':
                 nowy_limit_str = v_set['-CURRENTLIMIT-'].replace(',', '.')
@@ -235,7 +275,10 @@ while True:
                     # 2. Opcjonalnie: Jeśli masz tekst informujący o aktualnym limicie, zaktualizuj go:
                     win_sett['-INFO_LIMIT-'].update(f"Aktualny limit wynosi: {nowa_kwota} zł")
                 except ValueError:
-                    sg.popup_error("Wpisz poprawną liczbę!")        
+                    sg.popup_error("Wpisz poprawną liczbę!")   
+
+        window.close()
+                 
 
     if event == "Lista wydatków":
         wt.okno_listy_wydatkow()

@@ -3,6 +3,7 @@ import calendar
 from datetime import datetime
 import itertools
 import db_manager as db
+import FreeSimpleGUI as sg
 
 
 teraz = datetime.now()
@@ -123,6 +124,50 @@ def wydatki_dzienne_skumulowane():
     plt.grid(axis='y', linestyle='--', alpha=0.3)
     plt.tight_layout()
     plt.show(block=False)
+
+import matplotlib.pyplot as plt
+
+def wykres_roczny(rok):
+    # Pobieramy dane z bazy
+    dane_z_db = db.pobierz_sumy_miesieczne_w_roku(rok)
+    
+    if not dane_z_db:
+        sg.popup_quick_message(f"Brak jakichkolwiek danych dla roku {rok}", background_color="orange")
+        return
+
+    # Polskie nazwy miesięcy na oś X
+    nazwy_miesiecy = [
+        "Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec",
+        "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"
+    ]
+    
+    # Mapujemy dane z bazy (zamieniamy tekstowy numer miesiąca na indeks)
+    # dane_z_db ma format np. [('01', 1200.0), ('05', 300.0)]
+    wydatki_slownik = {int(miesiac): kwota for miesiac, kwota in dane_z_db}
+    
+    # Tworzymy pełną listę 12 wartości (jeśli brak miesiąca w bazie, dajemy 0)
+    kwoty_miesieczne = [wydatki_slownik.get(i, 0.0) for i in range(1, 13)]
+
+    # Rysowanie wykresu Matplotlib
+    plt.figure(figsize=(10, 6))
+    
+    # Tworzymy słupki
+    bars = plt.bar(nazwy_miesiecy, kwoty_miesieczne, color='mediumseagreen', edgecolor='darkgreen')
+    
+    # Dodajemy wartości nad słupkami, żeby wykres był czytelniejszy
+    for bar in bars:
+        yval = bar.get_height()
+        if yval > 0: # Pokazujemy etykietę tylko, jeśli wydatek jest większy od zera
+            plt.text(bar.get_x() + bar.get_width()/2, yval + 10, f"{int(yval)} zł", ha='center', va='bottom', fontsize=9)
+
+    plt.title(f'Podsumowanie wydatków za rok: {rok}', fontsize=14, fontweight='bold')
+    plt.xlabel('Miesiąc')
+    plt.ylabel('Suma wydatków (PLN)')
+    plt.xticks(rotation=30) # Lekkie obrócenie nazw, żeby się nie nakładały
+    plt.grid(axis='y', linestyle='--', alpha=0.5)
+    plt.tight_layout() # Zapobiega obcinaniu podpisów na macOS
+    plt.show()
+    
 
 # To, co masz na końcu pliku, schowaj pod tym warunkiem:
 if __name__ == "__main__":

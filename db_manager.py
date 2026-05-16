@@ -246,6 +246,24 @@ def pobierz_limit(rok, miesiac):
     # W przeciwnym razie zwracamy 0.0, żeby wykres się nie "rozsypał"
     return wynik[0] if wynik else 0.0
 
+# Pobieramy numer miesiąca i sumę wydatków dla tego miesiąca
+def pobierz_sumy_miesieczne_w_roku(rok):
+    conn = sqlite3.connect('centus.db')
+    cursor = conn.cursor()
+    
+    # Pobieramy numer miesiąca i sumę wydatków dla tego miesiąca
+    query = """
+        SELECT strftime('%m', data) as miesiac, SUM(kwota) 
+        FROM wydatki 
+        WHERE strftime('%Y', data) = ?
+        GROUP BY miesiac
+        ORDER BY miesiac ASC
+    """
+    cursor.execute(query, (str(rok),))
+    dane = cursor.fetchall()
+    conn.close()
+    return dane # Zwraca listę krotek, np. [('01', 1200.50), ('02', 950.00)]
+
 if __name__ == "__main__":
     inicjalizuj_baze()
     print("Baza danych jest gotowa do ataku.")
