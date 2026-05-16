@@ -36,6 +36,7 @@ layout = [
     
     [sg.HorizontalSeparator(), sg.Text('         ')], # Estetyczna linia oddzielająca
     [sg.Button("Pokaż wykres skumulowany", size=(22, 1))],
+
     [sg.Button("Pokaż kategorie", size=(22, 1))],
     [sg.Button("Lista wydatków", size=(22,1))],
     [sg.Button("Wyjście", size=(22, 1)), sg.Button("Ustawienia", size=(4, 1))], # NOWY PRZYCISKsg.Button("Wyjście", size=(22, 1))]
@@ -101,16 +102,19 @@ while True:
 
         except ValueError:
             sg.popup_error("Wpisz poprawną liczbę")
-
-    if event == "Pokaż wykres skumulowany":
-        # Wywołujesz funkcję, którą przed chwilą dopracowałaś
-        wm.wydatki_dzienne_skumulowane()
-
+    
     if event == "Pokaż kategorie":
         data = okno_wyboru_daty()
         if data:
             rok, miesiac = data
             kw.wydatki_kategorie(rok, miesiac)
+    
+    if event == "Pokaż wykres skumulowany":
+        data = okno_wyboru_daty()
+        if data:
+            rok, miesiac = data
+            # wm.wykres_skumulowany(rok, miesiac)
+            wm.wydatki_dzienne_skumulowane()
  
     if event == "Ustawienia":
         # Tworzymy układ nowego okna
@@ -232,15 +236,10 @@ while True:
                     win_sett['-INFO_LIMIT-'].update(f"Aktualny limit wynosi: {nowa_kwota} zł")
                 except ValueError:
                     sg.popup_error("Wpisz poprawną liczbę!")        
-            
-            if event == "Pokaż wykres skumulowany":
-                wm.wydatki_dzienne_skumulowane()
-
-            if event == "Pokaż kategorie":
-                kw.wydatki_kategorie()
 
     if event == "Lista wydatków":
-        wt.okno_listy_wydatkow()        
+        wt.okno_listy_wydatkow()
+
 print(f"Ostatnia linia widnows.close(). Zdarzenie: {event}") 
 window.close()
 

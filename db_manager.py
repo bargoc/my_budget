@@ -210,6 +210,42 @@ def usun_wydatek(id_wydatku):
     conn.commit()
     conn.close()
 
+def pobierz_sumy_dzienne(rok, miesiac):
+    conn = sqlite3.connect('centus.db')
+    cursor = conn.cursor()
+    # Pobieramy dzień miesiąca i sumę wydatków z tego dnia
+    query = """
+        SELECT strftime('%d', data) as dzien, SUM(kwota) 
+        FROM wydatki 
+        WHERE strftime('%Y', data) = ? AND strftime('%m', data) = ?
+        GROUP BY dzien
+        ORDER BY dzien ASC
+    """
+    cursor.execute(query, (str(rok), f"{miesiac:02d}"))
+    dane = cursor.fetchall()
+    conn.close()
+    return dane # Zwraca listę krotek np. [('01', 50.0), ('05', 120.0)]
+
+def pobierz_limit(rok, miesiac):
+    conn = sqlite3.connect('centus.db')
+    cursor = conn.cursor()
+    
+    # Usuwamy 'group by', bo filtrujemy konkretny okres
+    query = """ 
+        SELECT limit_kwota 
+        FROM limit_wydatkow  
+        WHERE strftime('%Y', limit_kwota) = ? AND strftime('%m', limit_kwota) = ?
+    """    
+    
+    cursor.execute(query, (str(rok), f"{miesiac:02d}"))
+    wynik = cursor.fetchone() # Pobieramy tylko jeden (pierwszy) pasujący rekord
+    conn.close()
+    
+    # Logika bezpieczeństwa:
+    # Jeśli wynik istnieje, bierzemy pierwszą wartość z krotki wynik[0]
+    # W przeciwnym razie zwracamy 0.0, żeby wykres się nie "rozsypał"
+    return wynik[0] if wynik else 0.0
+
 if __name__ == "__main__":
     inicjalizuj_baze()
     print("Baza danych jest gotowa do ataku.")

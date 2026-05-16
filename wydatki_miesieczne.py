@@ -20,6 +20,50 @@ print(liczba_dni)
 dni_miesiaca = list(range(1, liczba_dni + 1))
 print(f"Mamy rok {rok}, miesiąc {miesiac}. Wykres będzie miał {liczba_dni} dni.") 
 
+def wykres_skumulowany(rok=None, miesiac=None):
+    if rok is None or miesiac is None:
+        dzis = datetime.now()
+        rok, miesiac = dzis.year, dzis.month
+
+    # Pobieramy dane z bazy
+    dane_z_db = db.pobierz_sumy_dzienne(rok, miesiac)
+    # Pobieramy limit dla danego miesiąca (załóżmy, że masz taką funkcję)
+    limit_miesieczny = db.pobierz_limit(rok, miesiac)
+
+    # Wyznaczamy liczbę dni w wybranym miesiącu
+    dni_w_miesiacu = calendar.monthrange(rok, miesiac)[1]
+    dni = list(range(1, dni_w_miesiacu +1))
+
+    # Przygotowujemy listę wydatków dla każdego dnia (uzupełniamy zera tam, gdzie nie było zakupów)
+    wydatki_slownik = {int(dzien): kwota for dzien, kwota in dane_z_db}
+    dzienne_kwoty = [wydatki_slownik.get(d, 0) for d in dni]
+
+    # Obliczamy sumę skumulowaną (np. dzień 2 = dzień 1 + dzień 2)
+    skumulowane = []
+    suma = 0
+    for kwota in dzienne_kwoty:
+        suma += kwota
+        skumulowane.append(suma)
+
+    
+    # Rysowanie wykresu
+    plt.figure(figsize=(10, 6))
+    
+    # Słupki wydatków
+    plt.bar(dni, skumulowane, color='skyblue', label='Wydatki skumulowane')
+
+    # Linia limitu (czerwona linia prowadząca od 0 do limitu na koniec miesiąca)
+    linia_budzetu = [limit_miesieczny * (d / dni_w_miesiacu) for d in dni]
+    plt.plot(dni, linia_budzetu, color='red', label='Linia budżetu')
+
+    plt.title(f'Suma wydatków skumulowana: {miesiac:02d}/{rok}')
+    plt.xlabel('Dzień miesiąca')
+    plt.ylabel('Wydatki (PLN)')
+    plt.legend()
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.show()
+
+
 def wydatki_dzienne_skumulowane():
 
     # 1. Przykładowe surowe dane (wydatki z konkretnych dni)
