@@ -3,17 +3,25 @@ import wydatki_miesieczne as wm
 import wydatki_wg_kategorii as kw
 import db_manager as db
 import sqlite3
-import logging
 from datetime import datetime
 import widok_tabeli as wt
+import moj_logger
 
-logging.basicConfig(filename='DebugInfo.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-logging.getLogger('matplotlib').setLevel(logging.WARNING)
+# 1. Konfigurujemy logger JEDEN RAZ na samym początku uruchamiania aplikacji
+moj_logger.skonfiguruj_logger()
+
+# 2. Pobieramy instancję logera dla tego konkretnego pliku
+logger = moj_logger.pobierz_logger('budzet')
+
 # Przy starcie programu tworzymy tabele, jeśli nie istnieją
 db.inicjalizuj_baze()
-logging.debug('Inicjalizacja bazy danych')
+
+# 3. Zapisujemy komunikat
+logger.debug('Inicjalizacja bazy danych')
+
+db.inicjalizuj_baze()
+
 db.ustaw_poczatkowy_limit()
-logging.debug('Start programu')
 sg.theme('SystemDefaultForReal') # Lub np. 'LightBlue'
 # Definiujemy listę kategorii (to co ma być w środku listy rozwijanej)
 db.dodaj_poczatkowe_kategorie_db()
@@ -24,19 +32,15 @@ layout = [
     [sg.Text("Budżet Domowy", font=("Arial", 18)), sg.Push(), sg.Button("⚙", key="Ustawienia", font=("Arial", 18), size=(2, 1))], 
     [sg.Text("Wybierz kategorię:")], 
     [sg.Combo(lista_kategorii, key='-KAT-', readonly=True, default_value=lista_kategorii[0], size=(21, 1))], 
-    # [sg.Text("Dodaj nową kategorię:")],
-    # [sg.Input(key='-NOWA_KAT-', size=(23, 1)), sg.Button(" + ")],
     [sg.Text("Kwota:")],
     [sg.Input(key='-KWOTA-', size=(23, 1))],
     
     # Akceptacja pojedynczego zakupu
     # bind_return_key=True: To "ficzer", który pozwala na zatwierdzenie zakupu po prostu naciskając Enter na klawiaturze,
     # bez odrywania rąk od pisania kwot.
-    [sg.Button("Dodaj zakup", bind_return_key=True, button_color=('white', 'green'), size=(22, 1))],
-    
+    [sg.Button("Dodaj zakup", bind_return_key=True, button_color=('white', 'green'), size=(22, 1))],   
     [sg.HorizontalSeparator(), sg.Text('         ')], # Estetyczna linia oddzielająca
     [sg.Button("Pokaż wykres skumulowany", size=(22, 1))],
-
     [sg.Button("Pokaż kategorie", size=(22, 1))],
     [sg.Button("Lista wydatków", size=(22, 1))],
     [sg.Button("Urlop Duo", size=(22, 1))],
@@ -45,35 +49,6 @@ layout = [
 ]
 
 window = sg.Window("Centuś", layout)
-
-""" def pobierz_dane_urlopowe():
-    conn = sqlite3.connect('centus.db')
-    cursor = conn.cursor()
-    # Pobieramy wydatki posortowane chronologicznie
-    cursor.execute("SELECT data, kategoria, kwota, uzytkownik FROM wydatki_urlop ORDER BY data ASC")
-    wiersze = cursor.fetchall()
-    conn.close()
-
-    tabela_gui = []
-    suma_skumulowana = 0.0
-
-    for data, kategoria, kwota, uzytkownik in wiersze:
-        suma_skumulowana += kwota
-        
-        # Rozdzielamy kwoty na kolumny w zależności od tego, kto płacił
-        kwota_basia = f"{kwota:.2f}" if uzytkownik == 'Basia' else ""
-        kwota_ala = f"{kwota:.2f}" if uzytkownik == 'Alicja' else ""
-        
-        # Tworzymy wiersz do wyświetlenia w GUI
-        tabela_gui.append([
-            data[:10], # Tylko data RRRR-MM-DD bez godzin
-            kategoria,
-            kwota_basia,
-            kwota_ala,
-            f"{suma_skumulowana:.2f}" # Suma narastająca dzień po dniu
-        ])
-        
-    return tabela_gui """
 
 def okno_urlop():
     kategorie_urlop = ["Podróż", "Noclegi"]
@@ -133,11 +108,16 @@ def okno_urlop():
     win_urlop.close()
     
 def odswiez_liste_kategorii(window):
-    nowe_kategorie = db.pobierz_kategorie() # Twoja funkcja pobierająca listę
+    nowe_kategorie = db.pobierz_kategorie_db() # Twoja funkcja pobierająca listę
     
-    # ZABEZPIECZENIE:
+    # Zabezpieczenie: Sprawdzamy czy window nie jest None i czy posiada element o tym kluczu
     if window and not window.was_closed():
-        window['-COMBO-'].update(values=nowe_kategorie)
+        # Używamy klucza, który faktycznie znajduje się w layoucie głównego okna
+        # Sprawdź w layoucie: czy to na pewno '-KAT-' czy '-COMBO_KAT-'?
+        try:
+            window['-KAT-'].update(values=nowe_kategorie)
+        except KeyError:
+            print("Błąd: Nie znaleziono klucza '-KAT-' w głównym oknie.")
     else:
         print("Nie mogę odświeżyć listy – okno jest zamknięte.")
 
@@ -189,22 +169,9 @@ def okno_wyboru_roku():
     window.close()
     return wybrany_rok
 
-""" def okno_ustawien():
-    win_sett = sg.Window("Ustawienia", layout)
-    while True:
-        e_set, v_set = win_sett.read()
-        if e_set in (sg.WIN_CLOSED, "Zamknij"):
-            # 1. Kliknięcie powoduje WYJŚCIE z pętli...
-            break  
-
-    # <--- TUTAJ JESTEŚMY PO KLIKNIĘCIU "ZAMKNIJ"
-    # Jeśli w tym miejscu brakuje poniższej linijki:
-    win_sett.close() """
-
 while True:
     event, values = window.read()
     print(f"event: {event}")
-    logging.debug(f"Zdarzenie: {event}")
     if event in (sg.WIN_CLOSED, "Wyjście"):
         break 
 
@@ -215,10 +182,10 @@ while True:
         try:
             kwota = float(kwota_str)
             db.dodaj_wydatek_db(kat, kwota, uzytkownik="Basia")
-            logging.debug('Dodanie wydatku')
+            
             # Resetowanie pola kwoty i potwierdzenie zmiany
             window['-KWOTA-'].update('')
-            logging.debug('Dodanie wydatku')
+            logger.debug('Dodanie wydatku')
             sg.popup_quick_message(f"Zapisano w bazie: {kwota} zł ({kat})", background_color="green", text_color="white")
 
         except ValueError:
@@ -229,7 +196,7 @@ while True:
         if data:
             rok, miesiac = data
             kw.wydatki_kategorie(rok, miesiac)
-    
+
     if event == "Pokaż wykres skumulowany":
         data = okno_wyboru_daty()
         if data:
@@ -287,35 +254,9 @@ while True:
                     if typ_msg == "quick":
                         sg.popup_quick_message(tresc_msg)
                     elif typ_msg == "error":
-                        sg.popup_error(tresc_msg)
+                        sg.popup_error("Ta kategoria już istnieje i jest aktywa.")
 
                     # 3. Odświeżamy listę w oknach korzystając z gotowej metody
-                    
-
-
-                    """ conn = sqlite3.connect('centus.db') 
-                    c = conn.cursor()
-
-                    # 1. Sprawdzamy, czy taka kategoria już w ogóle istnieje (nawet ukryta)
-                    # Jeśli jest ukryta, to ją aktywujemy
-                    c.execute("SELECT aktywna FROM kategorie WHERE nazwa = ?", (n_kat,))
-                    istnieje = c.fetchone()
-                    
-                    if istnieje:
-                        if istnieje[0] == 0:
-                            # Jeśli jest ukryta, to ją aktywujemy
-                            c.execute("UPDATE kategorie SET aktywna = 1 WHERE nazwa = ?", (n_kat,))
-                            # odswiez_liste_kategorii()
-                            sg.popup_quick_message(f"Przywrócono kategorię: {n_kat}")
-                        else:
-                            sg.popup_error("Ta kategoria jest już aktywna!")
-                    else:
-                        # 2. Jeśli nie istnieje, dodajemy nową
-                        c.execute("INSERT INTO kategorie (nazwa, aktywna) VALUES (?, 1)", (n_kat,))
-                        sg.popup_quick_message(f"Dodano nową kategorię: {n_kat}")
-
-                    conn.commit()
-                    conn.close() """
 
                     # Odświeżamy widoki w obu oknach
                     nowa_lista = db.pobierz_kategorie_db()
@@ -323,39 +264,29 @@ while True:
                     # Czyszczenie pola wejściowego po dodaniu (zakładam, że pole Input ma klucz '-NEW-') Czyścimy Input 
                     win_sett['-LISTA-'].update(nowa_lista)
 
-                    # Aktualizacja Combo w głównym oknie
-                    """if window:
-                        win_sett['-LISTA-'].update(nowa_lista)
-                    # Czyszczenie pola wejściowego po dodaniu (zakładam, że pole Input ma klucz '-NEW-'). Czyścimy Input                    
-                    win_sett['-LISTA-'].update(nowa_lista) """
-
                     # Aktualizacja Combo w oknie głównym (jeśli obiekt głównego okna istnieje)
                     if window:
-                        window['-COMBO_KAT-'].update(values=nowa_lista) # użyj właściwego klucza Twojego Combo
+                        window['-KAT-'].update(values=nowa_lista) # użyj właściwego klucza Twojego Combo
                    
             
             if e_set == "Ukryj kategorię":
-                wybrana = v_set['-LISTA-']
-                if wybrana:
-                    # Wywołujemy funkcję z argumentem, a ona zwraca nam nową listę
+                wybrana_z_listy = v_set['-LISTA-']
+                logger.debug('Próba pokazania kategorii') # To zwraca np. ['Odzież']
+                if wybrana_z_listy:  # Sprawdzamy, czy użytkownik w ogóle coś kliknął
+                    wybrana = wybrana_z_listy[0] # <--- TUTAJ wyciągamy czysty tekst: 'Odzież'
+                    
+                    # Teraz przekazujemy czysty tekst do bazy danych
                     nowa_lista = db.ukryj_kategorie_db(wybrana)
-
+                    logger.debug('Kategorie ukryta - pudło')
                     # Odświeżamy widok w GUI
                     win_sett['-LISTA-'].update(nowa_lista)
-                    sg.popup_quick_message(f"Ukryto kategorię: {wybrana}")
+                    sg.popup_quick_message(f"Ukryto kategorię: {wybrana[0]}")
 
-                    """conn = sqlite3.connect('centus.db')
-                    c = conn.cursor()
-                    c.execute("UPDATE kategorie SET aktywna = 0 WHERE nazwa = ?", (wybrana[0],))
-
-                    conn.commit()
-                    conn.close()
-                    nowa_lista = db.pobierz_kategorie_db() 
-                    win_sett['-LISTA-'].update(nowa_lista)
-                    window['-KAT-'].update(values=nowa_lista) """
-
+                    logger.debug('Kategorie ukryta - pudło')
                     if window:
+                        logger.debug('1')
                         window['-KAT-'].update(values=nowa_lista)
+                        logger.debug('2')
                     # Czyścimy Input                    
                     win_sett['-LISTA-'].update(nowa_lista)
             

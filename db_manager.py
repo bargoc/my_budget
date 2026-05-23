@@ -1,6 +1,8 @@
 import sqlite3
-import logging
+import moj_logger  # Import naszego modułu
 
+# Pobieramy logger i nazywamy go nazwą tego modułu
+logger = moj_logger.pobierz_logger('BazaDanych')
 
 def inicjalizuj_baze():
     conn = sqlite3.connect('centus.db')
@@ -34,8 +36,6 @@ def inicjalizuj_baze():
     
     conn.commit()
     conn.close()
-
-import sqlite3
 
 def pobierz_tabele_urlopowa():
     """Pobiera dane z bazy i przygotowuje je bezpośrednio w formacie dla widgetu sg.Table."""
@@ -104,6 +104,8 @@ def ukryj_kategorie_db(nazwa_kategorii):
     c.execute("UPDATE kategorie SET aktywna = 0 WHERE nazwa = ?", (nazwa_kategorii,))
     # 2. KONIECZNIE zatwierdzamy zmiany w pliku bazy danych
     conn.commit()
+    # 2. JAWNIE pytamy bazę o nową, zaktualizowaną listę aktywnych kategorii
+    c.execute("SELECT nazwa FROM kategorie WHERE aktywna = 1 ORDER BY nazwa ASC")
     # 3. Od razu pobieramy świeżą listę aktywnych kategorii, żeby przekazać ją do GUI
     wyniki = c.fetchall()
     conn.close()
@@ -136,10 +138,12 @@ def dodaj_wydatek_db(kat, kwota, uzytkownik="Basia"):
     c.execute("INSERT INTO wydatki (data, kategoria, kwota, uzytkownik) VALUES (?, ?, ?, ?)",
               (data_dzis, kat, kwota, uzytkownik))
     conn.commit()
+    logger.info(f'Pomyślnie zaktualizowano bazę dla wydatku: {kwota}')
     conn.close()
     
 
 def pobierz_wydatki_miesieczne(rok, miesiac):
+    logger.debug(f'Próba dodania wydatku: {rok, miesiac}')
     import sqlite3
     conn = sqlite3.connect('centus.db')
     c = conn.cursor()
@@ -324,15 +328,20 @@ def zarzadzaj_dodawaniem_kategorii(n_kat):
     kursor.execute("SELECT aktywna FROM kategorie WHERE nazwa = ?", (n_kat,))
     istnieje = kursor.fetchone()
 
-    status = ()
-    if istnieje[0] == 0:
-        # Jeśli jest ukryta, to ją aktywujemy
-        kursor.execute("UPDATE kategorie SET aktywna = 1 WHERE nazwa = ?", (n_kat))
-        status = ("quick", f"Przywrócono kategorię: {n_kat}")
+    # status = ()
+    if istnieje is not None:
+
+        if istnieje[0] == 0:
+            # Jeśli jest ukryta, to ją aktywujemy
+            kursor.execute("UPDATE kategorie SET aktywna = 1 WHERE nazwa = ?", (n_kat,))
+            status = ("quick", f"Przywrócono kategorię: {n_kat}")
+        else:
+            # 2. Jeśli nie istnieje, dodajemy nową            
+            status = ("error", f"Dodano nową kategorię: {n_kat}")
     else:
-        # 2. Jeśli nie istnieje, dodajemy nową
         kursor.execute("INSERT INTO kategorie (nazwa, aktywna) VALUES (?, 1)", (n_kat,))
         status = ("quick", f"Dodano nową kategorię: {n_kat}")
+
     conn.commit()
     conn.close()
     return status
