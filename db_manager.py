@@ -37,6 +37,7 @@ def inicjalizuj_baze():
     conn.commit()
     conn.close()
 
+# **************************  URLOP  **************************
 def pobierz_tabele_urlopowa():
     """Pobiera dane z bazy i przygotowuje je bezpośrednio w formacie dla widgetu sg.Table."""
     conn = sqlite3.connect('centus.db')
@@ -69,6 +70,39 @@ def pobierz_tabele_urlopowa():
     return tabela_gui
 
 
+def dodaj_wydatek_urlop(data, kategoria, kwota, uzytkownik):
+    """ Wstawia do tabeli urlopowej i do bazy wydatek jednego z dwóch urlopowiczów. """
+    conn = sqlite3.connect('centus.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO wydatki_urlop (data, kategoria, kwota, uzytkownik) VALUES (?, ?, ?, ?)
+    ''', (data, kategoria, float(kwota), uzytkownik))
+    conn.commit()
+    conn.close()
+
+# Ta funkcja jest przykładem, jak można pobrać dane z bazy i przygotować je w formacie odpowiednim dla widgetu sg.Table.
+def oblicz_bilans_wyjazdu():
+    """Pobiera sumę wydatków Basi i Ali dla CAŁEGO wyjazdu."""
+    conn = sqlite3.connect('centus.db') # używamy Twojej testowej nazwy bazy
+    cursor = conn.cursor()
+    
+    query = """
+        SELECT uzytkownik, SUM(kwota) 
+        FROM wydatki_urlop 
+        GROUP BY uzytkownik
+    """
+    cursor.execute(query)
+    dane = cursor.fetchall()
+    conn.close()
+
+    sumy = {'Basia': 0.0, 'Alicja': 0.0}
+    for uzytkownik, kwota in dane:
+        if uzytkownik in sumy:
+            sumy[uzytkownik] = kwota if kwota else 0.0
+            
+    return sumy
+
+# **************************  KATEGORIE  **************************
 def dodaj_poczatkowe_kategorie_db():
     poczatkowe = ['Żywność', 'Dom', 'Auto']
     conn = sqlite3.connect('centus.db')
@@ -81,6 +115,7 @@ def dodaj_poczatkowe_kategorie_db():
     conn.close()
 
 def pobierz_kategorie_db():
+    """Pobiera wyłącznie AKTYWNE kategorie."""
     conn = sqlite3.connect('centus.db')
     kursor = conn.cursor()
     # Pobieramy tylko aktywne kategorie
@@ -112,14 +147,18 @@ def ukryj_kategorie_db(nazwa_kategorii):
     # Zwracamy czystą listę tekstową, np. ['Auto', 'Dom', 'Żywność']
     return [k[0] for k in wyniki]
 
-def przywroc_kategorie_db(nazwa):
+def przywroc_kategorie_db(nazwa_kategorii):
+    """Modyfikuje status kategorii na aktywny."""
     conn = sqlite3.connect('centus.db')
     c = conn.cursor()
-    c.execute("UPDATE kategorie SET aktywna = 1 WHERE nazwa = ?", (nazwa,))
+    
+    # 1. Przywracamy kategorię
+    c.execute("UPDATE kategorie SET aktywna = 1 WHERE nazwa = ?", (nazwa_kategorii,))
     conn.commit()
-    conn.close()    
+    conn.close()
 
 def pobierz_nieaktywne_kategorie_db():
+    """Pobiera wyłącznie UKRYTE (nieaktywne) kategorie."""
     conn = sqlite3.connect('centus.db')
     kursor = conn.cursor()
     # Pobieramy tylko aktywne kategorie
@@ -128,18 +167,7 @@ def pobierz_nieaktywne_kategorie_db():
     conn.close()
     return [k[0] for k in wyniki]    
 
-def dodaj_wydatek_db(kat, kwota, uzytkownik="Basia"):
-    from datetime import datetime
-    data_dzis = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    conn = sqlite3.connect('centus.db')
-    c = conn.cursor()
-    # INSERT OR IGNORE sprawi, że nie zdublujemy wpisów przy każdym starcie
-    c.execute("INSERT INTO wydatki (data, kategoria, kwota, uzytkownik) VALUES (?, ?, ?, ?)",
-              (data_dzis, kat, kwota, uzytkownik))
-    conn.commit()
-    logger.info(f'Pomyślnie zaktualizowano bazę dla wydatku: {kwota}')
-    conn.close()
+
     
 
 def pobierz_wydatki_miesieczne(rok, miesiac):
@@ -166,6 +194,19 @@ def pobierz_wydatki_miesieczne(rok, miesiac):
     conn.close()
     print(wyniki)
     return wyniki # Zwraca listę krotek np. [('01', 50.0), ('27', 450.0)]
+
+def dodaj_wydatek_db(kat, kwota, uzytkownik="Basia"):
+    from datetime import datetime
+    data_dzis = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    conn = sqlite3.connect('centus.db')
+    c = conn.cursor()
+    # INSERT OR IGNORE sprawi, że nie zdublujemy wpisów przy każdym starcie
+    c.execute("INSERT INTO wydatki (data, kategoria, kwota, uzytkownik) VALUES (?, ?, ?, ?)",
+              (data_dzis, kat, kwota, uzytkownik))
+    conn.commit()
+    logger.info(f'Pomyślnie zaktualizowano bazę dla wydatku: {kwota}')
+    conn.close()
 
 def pobierz_sumy_kategorii(rok, miesiac):
     import sqlite3
@@ -309,14 +350,7 @@ def pobierz_sumy_miesieczne_w_roku(rok):
     conn.close()
     return dane # Zwraca listę krotek, np. [('01', 1200.50), ('02', 950.00)]
 
-def dodaj_wydatek_urlop(data, kategoria, kwota, uzytkownik):
-    conn = sqlite3.connect('centus.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO wydatki_urlop (data, kategoria, kwota, uzytkownik) VALUES (?, ?, ?, ?)
-    ''', (data, kategoria, float(kwota), uzytkownik))
-    conn.commit()
-    conn.close()
+
 
 def zarzadzaj_dodawaniem_kategorii(n_kat):
     # Logika SQL dla dodawania kategorii.

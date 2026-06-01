@@ -19,7 +19,7 @@ db.inicjalizuj_baze()
 # 3. Zapisujemy komunikat
 logger.debug('Inicjalizacja bazy danych')
 
-db.inicjalizuj_baze()
+# db.inicjalizuj_baze()
 
 db.ustaw_poczatkowy_limit()
 sg.theme('SystemDefaultForReal') # Lub np. 'LightBlue'
@@ -51,19 +51,20 @@ layout = [
 window = sg.Window("Centuś", layout)
 
 def okno_urlop():
-    kategorie_urlop = ["Podróż", "Noclegi"]
+    kategorie_urlop = ["Podróż", "Noclegi", "Żywność", "Wejściówki", "Restauracja", "Bzdety"]
     naglowki = ["Data", "Kategoria", "Wydatki Basia", "Wydatki Ala", "Suma Skumulowana"]
     
     # Pobieramy dane startowe z bazy
     # dane_tabeli = pobierz_dane_urlopowe()
     dane_tabeli = db.pobierz_tabele_urlopowa()
+    tekst_startowy_bilansu = generuj_tekst_bilansu() # Generujemy bilans na starcie
 
     layout = [
         [sg.Text("🌴 Moduł Urlopowy – Bilans Wspólny", font=('Helvetica', 14, 'bold'))],
         
         # Sekcja wprowadzania nowego wydatku
         [sg.Frame("Dodaj wydatek urlopowy", [
-            [sg.Text("Kategoria:"), sg.Combo(kategorie_urlop, default_value="Żywność", key="-Combo_KAT-", readonly=True),
+            [sg.Text("Kategoria:"), sg.Combo(kategorie_urlop, default_value="Żywność", key="-KAT-", readonly=True),
              sg.Text("Kwota:"), sg.Input(size=(10,1), key="-KWOTA-")],
             [sg.Text("Kto płacił:"), 
              sg.Radio("Basia", "KTO", key="-R_BASIA-", default=True), 
@@ -74,8 +75,12 @@ def okno_urlop():
         # Główna lista wydatków do kontroli zapisów
         [sg.Table(values=dane_tabeli, headings=naglowki, auto_size_columns=True,
                   display_row_numbers=False, justification='center', key="-TABELA_URLOP-",
-                  num_rows=15, alternating_row_color='red')],
+                  num_rows=15, alternating_row_color='lightgrey')],
         
+        # --- NOWY ELEMENT: Pasek dynamicznego bilansu na jasnym, czytelnym tle ---
+        [sg.Text(tekst_startowy_bilansu, key="-TEKST_BILANSU-", font=('Helvetica', 11, 'bold'), 
+                 background_color='#E1F5FE', text_color='#0277BD', expand_x=True, justification='center', pad=(0,10))],
+
         [sg.Button("Zamknij")]
     ]
 
@@ -91,22 +96,43 @@ def okno_urlop():
             try:
                 kwota = float(values["-KWOTA-"].replace(',', '.'))
                 kat = values["-KAT-"]
-                kto = "Basia" if values["-R_BASIA-"] else "Ala"
+                kto = "Basia" if values["-R_BASIA-"] else "Alicja"
                 dzis = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 
                 # Zapis do bazy
                 db.dodaj_wydatek_urlop(dzis, kat, kwota, kto)
                 
-                # Odświeżenie tabeli w oknie
-                nowe_dane = db.pobierz_dane_urlopowe()
+                # 1. Odświeżenie tabeli
+                nowe_dane = db.pobierz_tabele_urlopowa()
                 win_urlop["-TABELA_URLOP-"].update(values=nowe_dane)
-                win_urlop["-KWOTA-"].update("") # czyszczenie pola kwoty
+                
+                # 2. ODŚWIEŻENIE BILANSU: Wyliczamy na nowo i aktualizujemy etykietę tekstową
+                nowy_tekst = generuj_tekst_bilansu()
+                win_urlop["-TEKST_BILANSU-"].update(value=nowy_tekst)
+                
+                win_urlop["-KWOTA-"].update("")
                 
             except ValueError:
                 sg.popup_error("Wprowadź poprawną kwotę!")
 
     win_urlop.close()
+
+def generuj_tekst_bilansu():
+    sumy = db.oblicz_bilans_wyjazdu()
+    razem = sumy['Basia'] + sumy['Alicja']
+    polowa = razem / 2
     
+    # Kto wydał mniej, ten oddaje różnicę do połowy
+    if sumy['Basia'] > sumy['Alicja']:
+        do_zwrotu = polowa - sumy['Alicja']
+        return f"Razem: {razem:.2f} zł  |  Alicja oddaje Basi: {do_zwrotu:.2f} zł"
+    elif sumy['Alicja'] > sumy['Basia']:
+        do_zwrotu = polowa - sumy['Basia']
+        return f"Razem: {razem:.2f} zł  |  Basia oddaje Alicji: {do_zwrotu:.2f} zł"
+    else:
+        return f"Razem: {razem:.2f} zł  |  Wydatki idealnie równe!"
+
+
 def odswiez_liste_kategorii(window):
     nowe_kategorie = db.pobierz_kategorie_db() # Twoja funkcja pobierająca listę
     
@@ -125,7 +151,6 @@ def okno_wyboru_daty():
     dzis = datetime.now()
     lata = [dzis.year, dzis.year - 1, dzis.year - 2]
     miesiace = [f"{i:02d}" for i in range(1, 13)]
-
     layout = [
         [sg.Text("Wybierz okres dla wykresu:")],
         [sg.Text("Miesiąc:"), sg.Combo(miesiace, default_value=dzis.strftime("%m"), key='-MIESIAC-', readonly=True, size=(10,1))],
@@ -291,25 +316,24 @@ while True:
                     win_sett['-LISTA-'].update(nowa_lista)
             
             if e_set == "Odzyskaj kategorię":
-                wybrana = v_set['-LISTAUKRYTYCH-']
-                if wybrana:
-                    conn = sqlite3.connect('centus.db')
-                    c = conn.cursor()
-                    c.execute("UPDATE kategorie SET aktywna = 1 WHERE nazwa = ?", (wybrana[0],))
-                    # odswiez_liste_kategorii()
-                    conn.commit()
-                    conn.close()
+                wybrana_z_listy = v_set['-LISTAUKRYTYCH-']
+                # ZABEZPIECZENIE: Sprawdzamy, czy użytkownik zaznaczył coś na liście
+                if wybrana_z_listy and len(wybrana_z_listy) > 0:
+                    wybrana = wybrana_z_listy[0]  # Wyciągamy czysty tekst z listy PySimpleGUI
                     # 2. Pobranie ŚWIEŻYCH danych dla obu list
+                    # 1. Przenosimy logikę do managera bazy
+                    db.przywroc_kategorie_db(wybrana)
+                    # 1. CZISTA LOGIKA: Wywołujemy funkcję z managera i odbieramy gotowe listy
                     nowe_aktywne = db.pobierz_kategorie_db()
                     nowe_nieaktywne = db.pobierz_nieaktywne_kategorie_db()
-                    # win_sett['-LISTA-'].update(nowa_lista)
-                    # window['-KAT-'].update(values=nowa_lista)
+                   
                    # 3. Aktualizacja GUI (Wszystkich miejsc!)
                     win_sett['-LISTA-'].update(values=nowe_aktywne)
                     win_sett['-LISTAUKRYTYCH-'].update(values=nowe_nieaktywne)
                     if window:
                         window['-KAT-'].update(values=nowe_aktywne)
-        
+                    sg.popup_quick_message(f"Przywrócono kategorię: {wybrana}")
+
             # Zmiana limitu 
             if e_set == 'Zmień':
                 nowy_limit_str = v_set['-CURRENTLIMIT-'].replace(',', '.')
